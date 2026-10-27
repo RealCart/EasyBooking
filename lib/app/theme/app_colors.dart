@@ -11,4 +11,13 @@ abstract final class AppColors {
   static const Color accentHover = Color(0xFFD31655);
   static const Color accentPressed = Color(0xFFBF124A);
   static const Color onAccent = Color(0xFFFFFFFF);
+
+  static const Color success = Color(0xFF18794E);
+  static const Color successSurface = Color(0xFFE9F6EF);
+  static const Color warning = Color(0xFF9A5B13);
+  static const Color warningSurface = Color(0xFFFFF4DE);
+  static const Color error = Color(0xFFC13515);
+  static const Color errorSurface = Color(0xFFFFEDE8);
+  static const Color info = Color(0xFF306A9B);
+  static const Color infoSurface = Color(0xFFEAF4FB);
 }

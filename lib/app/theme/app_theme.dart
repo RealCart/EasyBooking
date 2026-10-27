@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'package:easy_booking/app/theme/app_colors.dart';
+import 'package:easy_booking/app/theme/app_radii.dart';
+import 'package:easy_booking/app/theme/app_sizes.dart';
 import 'package:easy_booking/app/theme/app_typography.dart';
 
 abstract final class AppTheme {
@@ -25,16 +27,16 @@ abstract final class AppTheme {
     );
 
     const RoundedRectangleBorder buttonShape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.all(Radius.circular(8)),
+      borderRadius: BorderRadius.all(Radius.circular(AppRadii.field)),
     );
 
     const OutlineInputBorder enabledInputBorder = OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(8)),
+      borderRadius: BorderRadius.all(Radius.circular(AppRadii.field)),
       borderSide: BorderSide(color: AppColors.border),
     );
 
     const OutlineInputBorder focusedInputBorder = OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(8)),
+      borderRadius: BorderRadius.all(Radius.circular(AppRadii.field)),
       borderSide: BorderSide(color: AppColors.text, width: 2),
     );
 
@@ -66,7 +68,7 @@ abstract final class AppTheme {
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(16)),
+          borderRadius: BorderRadius.all(Radius.circular(AppRadii.card)),
         ),
       ),
       dividerTheme: const DividerThemeData(
@@ -76,7 +78,9 @@ abstract final class AppTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: ButtonStyle(
-          minimumSize: const WidgetStatePropertyAll<Size>(Size(64, 48)),
+          minimumSize: const WidgetStatePropertyAll<Size>(
+            Size(64, AppSizes.primaryButtonHeight),
+          ),
           padding: const WidgetStatePropertyAll<EdgeInsetsGeometry>(
             EdgeInsets.symmetric(horizontal: 24),
           ),
@@ -106,7 +110,9 @@ abstract final class AppTheme {
       ),
       outlinedButtonTheme: const OutlinedButtonThemeData(
         style: ButtonStyle(
-          minimumSize: WidgetStatePropertyAll<Size>(Size(64, 48)),
+          minimumSize: WidgetStatePropertyAll<Size>(
+            Size(64, AppSizes.primaryButtonHeight),
+          ),
           padding: WidgetStatePropertyAll<EdgeInsetsGeometry>(
             EdgeInsets.symmetric(horizontal: 24),
           ),
@@ -140,8 +146,14 @@ abstract final class AppTheme {
         enabledBorder: enabledInputBorder,
         disabledBorder: enabledInputBorder,
         focusedBorder: focusedInputBorder,
-        errorBorder: enabledInputBorder,
-        focusedErrorBorder: focusedInputBorder,
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.all(Radius.circular(AppRadii.field)),
+          borderSide: BorderSide(color: AppColors.error),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.all(Radius.circular(AppRadii.field)),
+          borderSide: BorderSide(color: AppColors.error, width: 2),
+        ),
       ),
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.surface,
@@ -187,7 +199,7 @@ abstract final class AppTheme {
             color: states.contains(WidgetState.selected)
                 ? AppColors.accent
                 : AppColors.secondaryText,
-            size: 23,
+            size: AppSizes.iconNavigation,
           );
         }),
         labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>((
@@ -206,7 +218,10 @@ abstract final class AppTheme {
           );
         }),
       ),
-      iconTheme: const IconThemeData(color: AppColors.text, size: 22),
+      iconTheme: const IconThemeData(
+        color: AppColors.text,
+        size: AppSizes.iconAppBar,
+      ),
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
         elevation: 0,
         focusElevation: 0,
@@ -215,7 +230,7 @@ abstract final class AppTheme {
         backgroundColor: AppColors.text,
         foregroundColor: AppColors.background,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(8)),
+          borderRadius: BorderRadius.all(Radius.circular(AppRadii.field)),
         ),
       ),
       progressIndicatorTheme: const ProgressIndicatorThemeData(
