@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Typography roles taken from the EasyBooking Paper design system.
 abstract final class AppTypography {
   static const String fontFamily = 'Inter';
 

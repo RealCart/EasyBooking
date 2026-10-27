@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:easy_booking/app/theme/app_colors.dart';
 import 'package:easy_booking/app/theme/app_typography.dart';
 
-/// Application themes assembled from the EasyBooking design primitives.
 abstract final class AppTheme {
   static ThemeData get light {
     const ColorScheme colorScheme = ColorScheme.light(

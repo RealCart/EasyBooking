@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Color primitives defined by the EasyBooking Paper design system.
 abstract final class AppColors {
   static const Color text = Color(0xFF222222);
   static const Color secondaryText = Color(0xFF6A6A6A);

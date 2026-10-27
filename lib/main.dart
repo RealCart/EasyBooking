@@ -14,7 +14,7 @@ class MyApp extends StatelessWidget {
       title: 'EasyBooking',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      themeMode: ThemeMode.light,
+      themeMode: .light,
       home: const MyHomePage(title: 'EasyBooking'),
     );
   }
