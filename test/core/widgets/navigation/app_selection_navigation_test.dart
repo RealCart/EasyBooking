@@ -3,9 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:easy_booking/app/theme/app_colors.dart';
 import 'package:easy_booking/app/theme/app_theme.dart';
-import 'package:easy_booking/core/widgets/navigation/app_scope_filter.dart';
-import 'package:easy_booking/core/widgets/navigation/app_tabs.dart';
-import 'package:easy_booking/core/widgets/navigation/app_week_selector.dart';
+import 'package:easy_booking/core/presentation/widgets/navigation/app_scope_filter.dart';
+import 'package:easy_booking/core/presentation/widgets/navigation/app_tabs.dart';
+import 'package:easy_booking/core/presentation/widgets/navigation/app_week_selector.dart';
 
 void main() {
   testWidgets('AppTabs reports the tapped tab index', (

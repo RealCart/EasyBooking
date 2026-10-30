@@ -5,7 +5,7 @@ import 'package:easy_booking/core/utils/storage/preferences_storage.dart';
 import 'package:easy_booking/core/utils/storage/secure_storage.dart';
 import 'package:easy_booking/core/utils/storage/storage_keys.dart';
 
-/// Persists [AuthTokens] in [SecureStorage].
+/// Persists [AuthTokens] and the account-setup flag in [SecureStorage].
 ///
 /// Throws `StorageException` when the platform storage fails.
 abstract interface class SessionStorage {
@@ -14,7 +14,13 @@ abstract interface class SessionStorage {
 
   Future<void> saveTokens(AuthTokens tokens);
 
+  /// Also removes the account-setup flag.
   Future<void> clearTokens();
+
+  /// Returns `false` when the flag is missing.
+  Future<bool> readAccountSetupPending();
+
+  Future<void> saveAccountSetupPending(bool isPending);
 }
 
 final class SessionStorageImpl implements SessionStorage {
@@ -22,6 +28,8 @@ final class SessionStorageImpl implements SessionStorage {
     required this._secureStorage,
     required this._preferences,
   });
+
+  static const String _pendingValue = 'true';
 
   final SecureStorage _secureStorage;
   final PreferencesStorage _preferences;
@@ -80,6 +88,26 @@ final class SessionStorageImpl implements SessionStorage {
   Future<void> clearTokens() async {
     await _secureStorage.delete(StorageKeys.accessToken);
     await _secureStorage.delete(StorageKeys.refreshToken);
+    await _secureStorage.delete(StorageKeys.accountSetupPending);
+  }
+
+  @override
+  Future<bool> readAccountSetupPending() async {
+    final String? value = await _secureStorage.read(
+      StorageKeys.accountSetupPending,
+    );
+    return value == _pendingValue;
+  }
+
+  @override
+  Future<void> saveAccountSetupPending(bool isPending) {
+    if (isPending) {
+      return _secureStorage.write(
+        key: StorageKeys.accountSetupPending,
+        value: _pendingValue,
+      );
+    }
+    return _secureStorage.delete(StorageKeys.accountSetupPending);
   }
 
   Future<void> _clearIgnoringErrors() async {

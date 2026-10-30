@@ -3,13 +3,13 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:easy_booking/app/theme/app_colors.dart';
-import 'package:easy_booking/core/widgets/actions/app_choice_chip.dart';
-import 'package:easy_booking/core/widgets/actions/app_icon_button.dart';
-import 'package:easy_booking/core/widgets/actions/app_primary_button.dart';
-import 'package:easy_booking/core/widgets/actions/app_secondary_button.dart';
-import 'package:easy_booking/core/widgets/actions/app_status_badge.dart';
-import 'package:easy_booking/core/widgets/actions/app_stepper.dart';
-import 'package:easy_booking/core/widgets/actions/app_text_button.dart';
+import 'package:easy_booking/core/presentation/widgets/actions/app_choice_chip.dart';
+import 'package:easy_booking/core/presentation/widgets/actions/app_icon_button.dart';
+import 'package:easy_booking/core/presentation/widgets/actions/app_primary_button.dart';
+import 'package:easy_booking/core/presentation/widgets/actions/app_secondary_button.dart';
+import 'package:easy_booking/core/presentation/widgets/actions/app_status_badge.dart';
+import 'package:easy_booking/core/presentation/widgets/actions/app_stepper.dart';
+import 'package:easy_booking/core/presentation/widgets/actions/app_text_button.dart';
 
 void main() {
   Future<void> pumpWidget(WidgetTester tester, Widget child) {

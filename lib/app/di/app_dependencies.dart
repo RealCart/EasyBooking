@@ -13,6 +13,16 @@ import 'package:easy_booking/core/utils/session/auth_session.dart';
 import 'package:easy_booking/core/utils/session/session_storage.dart';
 import 'package:easy_booking/core/utils/storage/preferences_storage.dart';
 import 'package:easy_booking/core/utils/storage/secure_storage.dart';
+import 'package:easy_booking/features/auth/data/repository/auth_repository_impl.dart';
+import 'package:easy_booking/features/auth/data/sources/remote/auth_remote.dart';
+import 'package:easy_booking/features/auth/domain/repository/auth_repository.dart';
+import 'package:easy_booking/features/auth/domain/usecases/create_account_usecase.dart';
+import 'package:easy_booking/features/auth/domain/usecases/send_code_usecase.dart';
+import 'package:easy_booking/features/auth/domain/usecases/sign_out_usecase.dart';
+import 'package:easy_booking/features/auth/domain/usecases/verify_code_usecase.dart';
+import 'package:easy_booking/features/auth/presentation/bloc/account_setup_bloc/account_setup_bloc.dart';
+import 'package:easy_booking/features/auth/presentation/bloc/login_bloc/login_bloc.dart';
+import 'package:easy_booking/features/auth/presentation/bloc/verify_code_bloc/verify_code_bloc.dart';
 
 /// The single composition root. Registrations are in dependency order:
 /// storage → session → clients → sources → repositories → use cases →
@@ -26,6 +36,10 @@ abstract final class AppDependencies {
     _registerStorage();
     _registerSession();
     _registerClients();
+    _registerSources();
+    _registerRepositories();
+    _registerUsecases();
+    _registerBlocs();
     _registerRouter();
     await _getIt.allReady();
   }
@@ -83,6 +97,56 @@ abstract final class AppDependencies {
         ),
       );
     }, dispose: (ApiClient client) => client.close());
+  }
+
+  static void _registerSources() {
+    _getIt.registerLazySingleton<AuthRemote>(
+      () => AuthRemoteImpl(apiClient: _getIt<ApiClient>()),
+    );
+  }
+
+  static void _registerRepositories() {
+    _getIt.registerLazySingleton<AuthRepository>(
+      () => AuthRepositoryImpl(
+        remote: _getIt<AuthRemote>(),
+        session: _getIt<AuthSession>(),
+      ),
+    );
+  }
+
+  static void _registerUsecases() {
+    _getIt
+      ..registerLazySingleton<SendCodeUsecase>(
+        () => SendCodeUsecase(_getIt<AuthRepository>()),
+      )
+      ..registerLazySingleton<VerifyCodeUsecase>(
+        () => VerifyCodeUsecase(_getIt<AuthRepository>()),
+      )
+      ..registerLazySingleton<CreateAccountUsecase>(
+        () => CreateAccountUsecase(_getIt<AuthRepository>()),
+      )
+      ..registerLazySingleton<SignOutUsecase>(
+        () => SignOutUsecase(_getIt<AuthRepository>()),
+      );
+  }
+
+  static void _registerBlocs() {
+    _getIt
+      ..registerFactory<LoginBloc>(
+        () => LoginBloc(sendCode: _getIt<SendCodeUsecase>()),
+      )
+      ..registerFactory<VerifyCodeBloc>(
+        () => VerifyCodeBloc(
+          verifyCode: _getIt<VerifyCodeUsecase>(),
+          sendCode: _getIt<SendCodeUsecase>(),
+        ),
+      )
+      ..registerFactory<AccountSetupBloc>(
+        () => AccountSetupBloc(
+          createAccount: _getIt<CreateAccountUsecase>(),
+          signOut: _getIt<SignOutUsecase>(),
+        ),
+      );
   }
 
   static void _registerRouter() {

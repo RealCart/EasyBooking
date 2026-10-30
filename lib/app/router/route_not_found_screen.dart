@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:easy_booking/app/router/app_routes.dart';
 import 'package:easy_booking/app/theme/app_spacing.dart';
-import 'package:easy_booking/core/widgets/feedback/app_empty_state.dart';
+import 'package:easy_booking/core/presentation/widgets/feedback/app_empty_state.dart';
 
 /// Shown for unknown locations, for example an outdated deep link.
 final class RouteNotFoundScreen extends StatelessWidget {

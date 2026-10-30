@@ -1,4 +1,6 @@
 import 'package:flutter/widgets.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:easy_booking/app/router/app_routes.dart';
@@ -6,11 +8,18 @@ import 'package:easy_booking/app/router/app_shell_screen.dart';
 import 'package:easy_booking/app/router/route_not_found_screen.dart';
 import 'package:easy_booking/app/router/route_placeholder_screen.dart';
 import 'package:easy_booking/core/utils/logger/app_logger.dart';
+import 'package:easy_booking/core/utils/phone_number.dart';
 import 'package:easy_booking/core/utils/session/auth_session.dart';
+import 'package:easy_booking/features/auth/presentation/bloc/account_setup_bloc/account_setup_bloc.dart';
+import 'package:easy_booking/features/auth/presentation/bloc/login_bloc/login_bloc.dart';
+import 'package:easy_booking/features/auth/presentation/bloc/verify_code_bloc/verify_code_bloc.dart';
+import 'package:easy_booking/features/auth/presentation/screens/account_setup_screen.dart';
+import 'package:easy_booking/features/auth/presentation/screens/login_screen.dart';
+import 'package:easy_booking/features/auth/presentation/screens/verify_code_screen.dart';
 
 abstract final class AppRouter {
   /// Builds the app router. It re-evaluates redirects whenever [session]
-  /// signs in or out.
+  /// changes.
   ///
   /// Routes inside a tab keep the bottom navigation. Top-level routes and
   /// tab routes with `parentNavigatorKey: rootNavigatorKey` cover it, as the
@@ -29,6 +38,7 @@ abstract final class AppRouter {
       redirect: (BuildContext context, GoRouterState state) {
         return redirect(
           isAuthenticated: session.isAuthenticated,
+          isAccountSetupPending: session.isAccountSetupPending,
           uri: state.uri,
         );
       },
@@ -48,49 +58,80 @@ abstract final class AppRouter {
     );
   }
 
-  /// Sends signed-out users to login, remembering where they were going in
-  /// [AppRoutes.fromQuery], and sends signed-in users away from login.
+  /// Decides where the user may be:
+  /// - signed out: only the login flow; other locations go to login with
+  ///   the original location in [AppRoutes.fromQuery];
+  /// - signed in with account setup pending: only account setup, carrying
+  ///   `from` along;
+  /// - signed in: the login flow and account setup go to `from` or today.
   ///
-  /// [AppRoutes.verifyCode] is left alone for signed-in users: after the code
-  /// is accepted, that screen decides between account setup and `from`.
-  static String? redirect({required bool isAuthenticated, required Uri uri}) {
+  /// Screens therefore never navigate after sign-in or account creation;
+  /// they update the session and this redirect moves the user on.
+  static String? redirect({
+    required bool isAuthenticated,
+    required bool isAccountSetupPending,
+    required Uri uri,
+  }) {
     final String path = uri.path;
-    final bool isLoginFlow =
-        path == AppRoutes.login.path ||
-        path.startsWith('${AppRoutes.login.path}/');
+    final bool isLoginFlow = _isLoginFlow(path);
+    final bool isAccountSetup = path == AppRoutes.accountSetup.path;
 
     if (!isAuthenticated) {
       if (isLoginFlow) {
         return null;
       }
-      final String from = uri.toString();
-      return Uri(
-        path: AppRoutes.login.path,
-        queryParameters: path == '/' || path == AppRoutes.today.path
-            ? null
-            : <String, String>{AppRoutes.fromQuery: from},
-      ).toString();
+      return _withFrom(
+        AppRoutes.login.path,
+        safeFromLocation(uri.toString()),
+      );
     }
 
-    if (path == AppRoutes.login.path) {
+    if (isAccountSetupPending) {
+      if (isAccountSetup) {
+        return null;
+      }
+      final String? from = isLoginFlow
+          ? safeFromLocation(uri.queryParameters[AppRoutes.fromQuery])
+          : safeFromLocation(uri.toString());
+      return _withFrom(AppRoutes.accountSetup.path, from);
+    }
+
+    if (isLoginFlow || isAccountSetup) {
       return safeFromLocation(uri.queryParameters[AppRoutes.fromQuery]) ??
           AppRoutes.today.path;
     }
     return null;
   }
 
-  /// Returns [from] when it is an in-app location outside the login flow.
+  /// Returns [from] when it is an in-app location worth returning to: not
+  /// the login flow, not account setup, and not just the default tab.
   static String? safeFromLocation(String? from) {
     if (from == null || !from.startsWith('/') || from.startsWith('//')) {
       return null;
     }
     final String path = Uri.tryParse(from)?.path ?? '';
     if (path.isEmpty ||
-        path == AppRoutes.login.path ||
-        path.startsWith('${AppRoutes.login.path}/')) {
+        path == '/' ||
+        path == AppRoutes.today.path ||
+        path == AppRoutes.accountSetup.path ||
+        _isLoginFlow(path)) {
       return null;
     }
     return from;
+  }
+
+  static bool _isLoginFlow(String path) {
+    return path == AppRoutes.login.path ||
+        path.startsWith('${AppRoutes.login.path}/');
+  }
+
+  static String _withFrom(String path, String? from) {
+    return Uri(
+      path: path,
+      queryParameters: from == null
+          ? null
+          : <String, String>{AppRoutes.fromQuery: from},
+    ).toString();
   }
 
   static List<RouteBase> _authRoutes() {
@@ -98,22 +139,71 @@ abstract final class AppRouter {
       GoRoute(
         name: AppRoutes.login.name,
         path: AppRoutes.login.path,
-        builder: (_, _) => const RoutePlaceholderScreen(title: 'Вход'),
+        builder: (_, GoRouterState state) {
+          return BlocProvider<LoginBloc>(
+            create: (_) => GetIt.instance<LoginBloc>(),
+            child: LoginScreen(
+              from: state.uri.queryParameters[AppRoutes.fromQuery],
+            ),
+          );
+        },
         routes: <RouteBase>[
           GoRoute(
             name: AppRoutes.verifyCode.name,
             path: AppRoutes.verifyCode.path,
-            builder: (_, _) =>
-                const RoutePlaceholderScreen(title: 'Подтверждение'),
+            redirect: (_, GoRouterState state) {
+              if (_verifyCodePhone(state) != null) {
+                return null;
+              }
+              return _withFrom(
+                AppRoutes.login.path,
+                state.uri.queryParameters[AppRoutes.fromQuery],
+              );
+            },
+            builder: (_, GoRouterState state) {
+              // The route redirect above guarantees a valid phone.
+              final String phone = _verifyCodePhone(state)!;
+              final Duration resendAfter = _verifyCodeResendAfter(state);
+              return BlocProvider<VerifyCodeBloc>(
+                create: (_) => GetIt.instance<VerifyCodeBloc>()
+                  ..add(
+                    VerifyCodeStarted(phone: phone, resendAfter: resendAfter),
+                  ),
+                child: VerifyCodeScreen(
+                  phone: phone,
+                  from: state.uri.queryParameters[AppRoutes.fromQuery],
+                ),
+              );
+            },
           ),
         ],
       ),
       GoRoute(
         name: AppRoutes.accountSetup.name,
         path: AppRoutes.accountSetup.path,
-        builder: (_, _) => const RoutePlaceholderScreen(title: 'Ваш аккаунт'),
+        builder: (_, _) {
+          return BlocProvider<AccountSetupBloc>(
+            create: (_) => GetIt.instance<AccountSetupBloc>(),
+            child: const AccountSetupScreen(),
+          );
+        },
       ),
     ];
+  }
+
+  /// The E.164 phone of the verify-code route, or `null` when it is missing
+  /// or not a valid number.
+  static String? _verifyCodePhone(GoRouterState state) {
+    final String? phone = state.uri.queryParameters[AppRoutes.phoneQuery];
+    return phone == null ? null : PhoneNumber.toE164(phone);
+  }
+
+  /// Resend delay of the verify-code route; zero when missing or invalid.
+  static Duration _verifyCodeResendAfter(GoRouterState state) {
+    final int? seconds = int.tryParse(
+      state.uri.queryParameters[AppRoutes.resendAfterQuery] ?? '',
+    );
+    return Duration(seconds: seconds == null || seconds < 0 ? 0 : seconds);
   }
 
   static StatefulShellRoute _tabs(GlobalKey<NavigatorState> rootNavigatorKey) {

@@ -4,13 +4,13 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:easy_booking/app/theme/app_colors.dart';
 import 'package:easy_booking/app/theme/app_theme.dart';
-import 'package:easy_booking/core/widgets/forms/app_document_tile.dart';
-import 'package:easy_booking/core/widgets/forms/app_flow_footer.dart';
-import 'package:easy_booking/core/widgets/forms/app_phone_country_fields.dart';
-import 'package:easy_booking/core/widgets/forms/app_search_field.dart';
-import 'package:easy_booking/core/widgets/forms/app_text_field.dart';
-import 'package:easy_booking/core/widgets/forms/app_upload_field.dart';
-import 'package:easy_booking/core/widgets/forms/app_value_field.dart';
+import 'package:easy_booking/core/presentation/widgets/forms/app_document_tile.dart';
+import 'package:easy_booking/core/presentation/widgets/forms/app_flow_footer.dart';
+import 'package:easy_booking/core/presentation/widgets/forms/app_phone_country_fields.dart';
+import 'package:easy_booking/core/presentation/widgets/forms/app_search_field.dart';
+import 'package:easy_booking/core/presentation/widgets/forms/app_text_field.dart';
+import 'package:easy_booking/core/presentation/widgets/forms/app_upload_field.dart';
+import 'package:easy_booking/core/presentation/widgets/forms/app_value_field.dart';
 
 void main() {
   Future<void> pumpWidget(WidgetTester tester, Widget child) {

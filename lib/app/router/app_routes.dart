@@ -28,7 +28,11 @@ abstract final class AppRoutes {
   /// Phone number the SMS code was sent to, on [verifyCode].
   static const String phoneQuery = 'phone';
 
-  /// Location to open after sign-in, on [login] and [verifyCode].
+  /// Seconds before another SMS code may be requested, on [verifyCode].
+  static const String resendAfterQuery = 'resendAfter';
+
+  /// Location to open after sign-in, on [login], [verifyCode], and
+  /// [accountSetup]. Forward it when moving between those screens.
   static const String fromQuery = 'from';
 
   // Authentication, shown without the bottom navigation.

@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:easy_booking/app/theme/app_theme.dart';
 import 'package:easy_booking/core/utils/extensions/context_extensions.dart';
-import 'package:easy_booking/core/widgets/feedback/app_snackbar.dart';
+import 'package:easy_booking/core/presentation/widgets/feedback/app_snackbar.dart';
 
 final class _Host extends StatelessWidget {
   const _Host({required this.onPressed});

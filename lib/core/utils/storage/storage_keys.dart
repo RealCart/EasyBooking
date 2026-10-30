@@ -9,4 +9,7 @@ abstract final class StorageKeys {
   // Secure storage.
   static const String accessToken = 'auth.access_token';
   static const String refreshToken = 'auth.refresh_token';
+
+  /// Present while a new user has not finished account setup.
+  static const String accountSetupPending = 'auth.account_setup_pending';
 }

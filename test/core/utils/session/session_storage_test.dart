@@ -97,7 +97,24 @@ void main() {
       expect(secure.operations, <String>[
         'delete ${StorageKeys.accessToken}',
         'delete ${StorageKeys.refreshToken}',
+        'delete ${StorageKeys.accountSetupPending}',
       ]);
+    });
+
+    test('also clears a stale account-setup flag', () async {
+      final _FakeSecureStorage secure = _FakeSecureStorage(<String, String>{
+        ..._bothTokens,
+        StorageKeys.accountSetupPending: 'true',
+      });
+      final SessionStorageImpl storage = SessionStorageImpl(
+        secureStorage: secure,
+        preferences: _FakePreferences(),
+      );
+
+      expect(await storage.readTokens(), isNull);
+
+      expect(secure.values, isEmpty);
+      expect(await storage.readAccountSetupPending(), isFalse);
     });
 
     test('treats a stored false flag as a first launch', () async {
@@ -269,6 +286,7 @@ void main() {
         'write ${StorageKeys.accessToken}',
         'delete ${StorageKeys.accessToken}',
         'delete ${StorageKeys.refreshToken}',
+        'delete ${StorageKeys.accountSetupPending}',
       ]);
     });
 
@@ -311,22 +329,45 @@ void main() {
   });
 
   group('SessionStorageImpl.clearTokens', () {
-    test('deletes the access token, then the refresh token', () async {
+    test(
+      'deletes the access token, the refresh token, then the flag',
+      () async {
+        final _FakeSecureStorage secure = _FakeSecureStorage(<String, String>{
+          ..._bothTokens,
+          StorageKeys.accountSetupPending: 'true',
+          'other': 'kept',
+        });
+
+        await SessionStorageImpl(
+          secureStorage: secure,
+          preferences: _FakePreferences(hasLaunchedBefore: true),
+        ).clearTokens();
+
+        expect(secure.values, <String, String>{'other': 'kept'});
+        expect(secure.operations, <String>[
+          'delete ${StorageKeys.accessToken}',
+          'delete ${StorageKeys.refreshToken}',
+          'delete ${StorageKeys.accountSetupPending}',
+        ]);
+      },
+    );
+
+    test('a failed flag delete still removes both tokens first', () async {
       final _FakeSecureStorage secure = _FakeSecureStorage(<String, String>{
         ..._bothTokens,
-        'other': 'kept',
-      });
-
-      await SessionStorageImpl(
+        StorageKeys.accountSetupPending: 'true',
+      })..failing.add('delete ${StorageKeys.accountSetupPending}');
+      final SessionStorageImpl storage = SessionStorageImpl(
         secureStorage: secure,
         preferences: _FakePreferences(hasLaunchedBefore: true),
-      ).clearTokens();
+      );
 
-      expect(secure.values, <String, String>{'other': 'kept'});
-      expect(secure.operations, <String>[
-        'delete ${StorageKeys.accessToken}',
-        'delete ${StorageKeys.refreshToken}',
-      ]);
+      await expectLater(
+        storage.clearTokens(),
+        throwsA(isA<StorageException>()),
+      );
+
+      expect(await storage.readTokens(), isNull);
     });
 
     test('propagates StorageException from the secure storage', () async {
@@ -340,6 +381,100 @@ void main() {
         ).clearTokens(),
         throwsA(isA<StorageException>()),
       );
+    });
+  });
+
+  group('SessionStorageImpl account-setup flag', () {
+    SessionStorageImpl storageWith(_FakeSecureStorage secure) {
+      return SessionStorageImpl(
+        secureStorage: secure,
+        preferences: _FakePreferences(hasLaunchedBefore: true),
+      );
+    }
+
+    test('reads false when the flag is missing', () async {
+      final _FakeSecureStorage secure = _FakeSecureStorage();
+
+      expect(await storageWith(secure).readAccountSetupPending(), isFalse);
+      expect(secure.operations, <String>[
+        'read ${StorageKeys.accountSetupPending}',
+      ]);
+    });
+
+    test('reads true only for the stored value true', () async {
+      for (final (String value, bool expected) in <(String, bool)>[
+        ('true', true),
+        ('false', false),
+        ('TRUE', false),
+        ('1', false),
+        ('', false),
+      ]) {
+        final _FakeSecureStorage secure = _FakeSecureStorage(<String, String>{
+          StorageKeys.accountSetupPending: value,
+        });
+
+        expect(
+          await storageWith(secure).readAccountSetupPending(),
+          expected,
+          reason: value,
+        );
+      }
+    });
+
+    test('saving true writes the string true under its key', () async {
+      final _FakeSecureStorage secure = _FakeSecureStorage();
+
+      await storageWith(secure).saveAccountSetupPending(true);
+
+      expect(secure.values, <String, String>{
+        StorageKeys.accountSetupPending: 'true',
+      });
+      expect(secure.operations, <String>[
+        'write ${StorageKeys.accountSetupPending}',
+      ]);
+    });
+
+    test('saving false deletes the key', () async {
+      final _FakeSecureStorage secure = _FakeSecureStorage(<String, String>{
+        ..._bothTokens,
+        StorageKeys.accountSetupPending: 'true',
+      });
+
+      await storageWith(secure).saveAccountSetupPending(false);
+
+      expect(secure.values, _bothTokens);
+      expect(secure.operations, <String>[
+        'delete ${StorageKeys.accountSetupPending}',
+      ]);
+    });
+
+    test('a saved flag reads back', () async {
+      final SessionStorageImpl storage = storageWith(_FakeSecureStorage());
+
+      await storage.saveAccountSetupPending(true);
+      expect(await storage.readAccountSetupPending(), isTrue);
+
+      await storage.saveAccountSetupPending(false);
+      expect(await storage.readAccountSetupPending(), isFalse);
+    });
+
+    test('propagates StorageException on read, write and delete', () async {
+      for (final String operation in <String>['read', 'write', 'delete']) {
+        final SessionStorageImpl storage = storageWith(
+          _FakeSecureStorage()..failing.add(operation),
+        );
+        final Future<void> call = switch (operation) {
+          'read' => storage.readAccountSetupPending(),
+          'write' => storage.saveAccountSetupPending(true),
+          _ => storage.saveAccountSetupPending(false),
+        };
+
+        await expectLater(
+          call,
+          throwsA(isA<StorageException>()),
+          reason: operation,
+        );
+      }
     });
   });
 

@@ -3,8 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:easy_booking/app/constants/assets/app_assets.dart';
 import 'package:easy_booking/app/theme/app_theme.dart';
-import 'package:easy_booking/core/widgets/navigation/app_bottom_navigation.dart';
-import 'package:easy_booking/core/widgets/navigation/app_sticky_action_bar.dart';
+import 'package:easy_booking/core/presentation/widgets/navigation/app_bottom_navigation.dart';
+import 'package:easy_booking/core/presentation/widgets/navigation/app_sticky_action_bar.dart';
 
 void main() {
   testWidgets(

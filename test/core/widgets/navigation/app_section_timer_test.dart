@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:easy_booking/app/theme/app_theme.dart';
-import 'package:easy_booking/core/widgets/navigation/app_resend_timer_row.dart';
-import 'package:easy_booking/core/widgets/navigation/app_section_header.dart';
+import 'package:easy_booking/core/presentation/widgets/navigation/app_resend_timer_row.dart';
+import 'package:easy_booking/core/presentation/widgets/navigation/app_section_header.dart';
 
 void main() {
   testWidgets('AppSectionHeader invokes its optional action', (

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:easy_booking/core/widgets/feedback/app_snackbar.dart';
+import 'package:easy_booking/core/presentation/widgets/feedback/app_snackbar.dart';
 
 extension ContextExtensions on BuildContext {
   /// Replaces the visible snackbar with an [AppSnackbar].

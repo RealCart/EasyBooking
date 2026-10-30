@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:easy_booking/app/constants/assets/app_assets.dart';
 import 'package:easy_booking/app/router/app_routes.dart';
-import 'package:easy_booking/core/widgets/navigation/app_bottom_navigation.dart';
+import 'package:easy_booking/core/presentation/widgets/navigation/app_bottom_navigation.dart';
 
 /// Hosts the four tab branches and the bottom navigation.
 ///

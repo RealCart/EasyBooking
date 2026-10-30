@@ -1,13 +1,13 @@
 import 'package:easy_booking/app/theme/app_colors.dart';
 import 'package:easy_booking/app/theme/app_theme.dart';
-import 'package:easy_booking/core/widgets/feedback/app_callout.dart';
-import 'package:easy_booking/core/widgets/feedback/app_confirmation_dialog.dart';
-import 'package:easy_booking/core/widgets/feedback/app_conflict_card.dart';
-import 'package:easy_booking/core/widgets/feedback/app_empty_state.dart';
-import 'package:easy_booking/core/widgets/feedback/app_feedback_tone.dart';
-import 'package:easy_booking/core/widgets/feedback/app_signature_progress.dart';
-import 'package:easy_booking/core/widgets/feedback/app_skeleton.dart';
-import 'package:easy_booking/core/widgets/feedback/app_snackbar.dart';
+import 'package:easy_booking/core/presentation/widgets/feedback/app_callout.dart';
+import 'package:easy_booking/core/presentation/widgets/feedback/app_confirmation_dialog.dart';
+import 'package:easy_booking/core/presentation/widgets/feedback/app_conflict_card.dart';
+import 'package:easy_booking/core/presentation/widgets/feedback/app_empty_state.dart';
+import 'package:easy_booking/core/presentation/widgets/feedback/app_feedback_tone.dart';
+import 'package:easy_booking/core/presentation/widgets/feedback/app_signature_progress.dart';
+import 'package:easy_booking/core/presentation/widgets/feedback/app_skeleton.dart';
+import 'package:easy_booking/core/presentation/widgets/feedback/app_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

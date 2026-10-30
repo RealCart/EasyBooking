@@ -3,10 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:easy_booking/app/theme/app_theme.dart';
-import 'package:easy_booking/core/widgets/navigation/app_detail_header.dart';
-import 'package:easy_booking/core/widgets/navigation/app_progress_app_bar.dart';
-import 'package:easy_booking/core/widgets/navigation/app_root_header.dart';
-import 'package:easy_booking/core/widgets/navigation/app_system_status_style.dart';
+import 'package:easy_booking/core/presentation/widgets/navigation/app_detail_header.dart';
+import 'package:easy_booking/core/presentation/widgets/navigation/app_progress_app_bar.dart';
+import 'package:easy_booking/core/presentation/widgets/navigation/app_root_header.dart';
+import 'package:easy_booking/core/presentation/widgets/navigation/app_system_status_style.dart';
 
 void main() {
   testWidgets('AppRootHeader renders title, subtitle, and action', (

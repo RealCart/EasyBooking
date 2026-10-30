@@ -4,8 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:easy_booking/app/theme/app_colors.dart';
 import 'package:easy_booking/app/theme/app_spacing.dart';
 import 'package:easy_booking/app/theme/app_typography.dart';
-import 'package:easy_booking/core/widgets/navigation/app_detail_header.dart';
-import 'package:easy_booking/core/widgets/navigation/app_root_header.dart';
+import 'package:easy_booking/core/presentation/widgets/navigation/app_detail_header.dart';
+import 'package:easy_booking/core/presentation/widgets/navigation/app_root_header.dart';
 
 /// Temporary destination for a route whose feature screen is not built yet.
 ///

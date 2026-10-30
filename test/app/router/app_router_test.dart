@@ -1,17 +1,43 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:easy_booking/app/router/app_router.dart';
 import 'package:easy_booking/app/router/app_routes.dart';
 import 'package:easy_booking/app/router/route_not_found_screen.dart';
 import 'package:easy_booking/app/router/route_placeholder_screen.dart';
+import 'package:easy_booking/features/auth/data/models/verify_code_response_model.dart';
+import 'package:easy_booking/features/auth/domain/entity/kazakhstan_cities.dart';
+import 'package:easy_booking/features/auth/presentation/screens/account_setup_screen.dart';
+import 'package:easy_booking/features/auth/presentation/screens/login_screen.dart';
+import 'package:easy_booking/features/auth/presentation/screens/verify_code_screen.dart';
 
 import '../../helpers/router_harness.dart';
 
-String? _redirect(String location, {required bool isAuthenticated}) {
+String? _redirect(
+  String location, {
+  required bool isAuthenticated,
+  bool isAccountSetupPending = false,
+}) {
   return AppRouter.redirect(
     isAuthenticated: isAuthenticated,
+    isAccountSetupPending: isAccountSetupPending,
     uri: Uri.parse(location),
   );
+}
+
+String? _pending(String location) {
+  return _redirect(
+    location,
+    isAuthenticated: true,
+    isAccountSetupPending: true,
+  );
+}
+
+String _withFrom(String path, String from) {
+  return Uri(
+    path: path,
+    queryParameters: <String, String>{AppRoutes.fromQuery: from},
+  ).toString();
 }
 
 /// Every route with the path parameters it needs, its expected location,
@@ -30,7 +56,7 @@ final class _RouteCase {
   final Map<String, String> pathParameters;
   final bool keepsNavigation;
 
-  /// Login routes redirect away from a signed-in user.
+  /// Auth routes redirect away from a signed-in user who finished setup.
   final bool canNavigateSignedIn;
 }
 
@@ -40,8 +66,12 @@ const Map<String, String> _property = <String, String>{
 
 const List<_RouteCase> _routeCases = <_RouteCase>[
   _RouteCase(AppRoutes.login, '/login', canNavigateSignedIn: false),
-  _RouteCase(AppRoutes.verifyCode, '/login/verify'),
-  _RouteCase(AppRoutes.accountSetup, '/account-setup'),
+  _RouteCase(AppRoutes.verifyCode, '/login/verify', canNavigateSignedIn: false),
+  _RouteCase(
+    AppRoutes.accountSetup,
+    '/account-setup',
+    canNavigateSignedIn: false,
+  ),
   _RouteCase(AppRoutes.today, '/today', keepsNavigation: true),
   _RouteCase(AppRoutes.calendar, '/calendar', keepsNavigation: true),
   _RouteCase(
@@ -130,6 +160,33 @@ void main() {
       expect(_redirect('/today', isAuthenticated: false), '/login');
     });
 
+    test('sends account setup to login without from', () {
+      expect(_redirect('/account-setup', isAuthenticated: false), '/login');
+      expect(
+        _redirect('/account-setup?from=%2Fprofile', isAuthenticated: false),
+        '/login',
+      );
+    });
+
+    test('ignores a pending flag without a session', () {
+      expect(
+        _redirect(
+          '/account-setup',
+          isAuthenticated: false,
+          isAccountSetupPending: true,
+        ),
+        '/login',
+      );
+      expect(
+        _redirect(
+          '/login',
+          isAuthenticated: false,
+          isAccountSetupPending: true,
+        ),
+        isNull,
+      );
+    });
+
     test('remembers a deep link in the from query', () {
       expect(
         _redirect('/properties/42', isAuthenticated: false),
@@ -160,9 +217,97 @@ void main() {
     });
   });
 
+  group('AppRouter.redirect when account setup is pending', () {
+    test('leaves account setup alone', () {
+      expect(_pending('/account-setup'), isNull);
+      expect(_pending('/account-setup?from=%2Fproperties%2F42'), isNull);
+    });
+
+    test('sends the login flow to account setup with its safe from', () {
+      expect(
+        _pending('/login?from=%2Fproperties%2F42'),
+        '/account-setup?from=%2Fproperties%2F42',
+      );
+      expect(
+        _pending(
+          '/login/verify?phone=%2B77001234567&resendAfter=30'
+          '&from=%2Fcalendar%3Fmonth%3D10',
+        ),
+        _withFrom('/account-setup', '/calendar?month=10'),
+      );
+    });
+
+    test('sends the login flow without a safe from to plain setup', () {
+      for (final String location in <String>[
+        '/login',
+        '/login/verify?phone=%2B77001234567',
+        _withFrom('/login', '//evil.example'),
+        _withFrom('/login', 'https://evil.example'),
+        _withFrom('/login', '/today'),
+        _withFrom('/login', '/'),
+        _withFrom('/login', '/account-setup'),
+        _withFrom('/login/verify', '/login'),
+      ]) {
+        expect(_pending(location), '/account-setup', reason: location);
+      }
+    });
+
+    test('uses any other location as from', () {
+      expect(
+        _pending('/properties/42'),
+        '/account-setup?from=%2Fproperties%2F42',
+      );
+      expect(
+        _pending('/calendar?month=10'),
+        _withFrom('/account-setup', '/calendar?month=10'),
+      );
+      expect(_pending('/unknown'), '/account-setup?from=%2Funknown');
+    });
+
+    test('does not use the start locations as from', () {
+      expect(_pending('/'), '/account-setup');
+      expect(_pending('/today'), '/account-setup');
+    });
+  });
+
   group('AppRouter.redirect when signed in', () {
     test('sends login to today', () {
       expect(_redirect('/login', isAuthenticated: true), '/today');
+    });
+
+    test('sends verify to today', () {
+      expect(
+        _redirect('/login/verify?phone=%2B77001234567', isAuthenticated: true),
+        '/today',
+      );
+    });
+
+    test('sends account setup to a safe from location or today', () {
+      expect(_redirect('/account-setup', isAuthenticated: true), '/today');
+      expect(
+        _redirect(
+          '/account-setup?from=%2Fproperties%2F42',
+          isAuthenticated: true,
+        ),
+        '/properties/42',
+      );
+      expect(
+        _redirect(
+          _withFrom('/account-setup', '//evil.example'),
+          isAuthenticated: true,
+        ),
+        '/today',
+      );
+    });
+
+    test('sends verify with from to that location', () {
+      expect(
+        _redirect(
+          '/login/verify?phone=%2B77001234567&from=%2Fprofile',
+          isAuthenticated: true,
+        ),
+        '/profile',
+      );
     });
 
     test('sends login to a safe from location', () {
@@ -178,6 +323,9 @@ void main() {
         'https://evil.example',
         '/login',
         '/login/verify',
+        '/',
+        '/today',
+        '/account-setup',
       ]) {
         expect(
           _redirect(
@@ -193,10 +341,9 @@ void main() {
       }
     });
 
-    test('leaves verify and other locations alone', () {
-      expect(_redirect('/login/verify', isAuthenticated: true), isNull);
+    test('leaves other locations alone', () {
       expect(_redirect('/today', isAuthenticated: true), isNull);
-      expect(_redirect('/account-setup', isAuthenticated: true), isNull);
+      expect(_redirect('/properties/42', isAuthenticated: true), isNull);
       expect(_redirect('/unknown', isAuthenticated: true), isNull);
     });
   });
@@ -223,6 +370,23 @@ void main() {
       ]) {
         expect(AppRouter.safeFromLocation(from), isNull, reason: '$from');
       }
+    });
+
+    test('rejects the root, today and account setup', () {
+      for (final String from in <String>[
+        '/',
+        '/today',
+        '/today?tab=1',
+        '/account-setup',
+        '/account-setup?from=%2Fprofile',
+      ]) {
+        expect(AppRouter.safeFromLocation(from), isNull, reason: from);
+      }
+    });
+
+    test('accepts paths that only start like a rejected one', () {
+      expect(AppRouter.safeFromLocation('/todayx'), '/todayx');
+      expect(AppRouter.safeFromLocation('/loginx'), '/loginx');
     });
   });
 
@@ -300,7 +464,7 @@ void main() {
       expect(harness.bottomNavigation, findsNothing);
     });
 
-    testWidgets('verify code is not redirected when signed in', (
+    testWidgets('verify code redirects a signed-in user to today', (
       WidgetTester tester,
     ) async {
       final RouterHarness harness = await RouterHarness.pump(
@@ -308,8 +472,163 @@ void main() {
         initialLocation: '/login/verify?phone=%2B77001234567',
       );
 
-      expect(Uri.parse(harness.location).path, '/login/verify');
-      expect(find.text('Подтверждение'), findsOneWidget);
+      expect(harness.location, '/today');
+      expect(find.byType(VerifyCodeScreen), findsNothing);
+    });
+
+    testWidgets('signing in with pending setup opens setup and keeps from', (
+      WidgetTester tester,
+    ) async {
+      final RouterHarness harness = await RouterHarness.pump(
+        tester,
+        signedIn: false,
+        initialLocation: '/properties/42',
+      );
+      expect(harness.location, '/login?from=%2Fproperties%2F42');
+
+      await harness.session.signIn(testTokens, isAccountSetupPending: true);
+      await tester.pumpAndSettle();
+
+      expect(harness.location, '/account-setup?from=%2Fproperties%2F42');
+      expect(find.byType(AccountSetupScreen), findsOneWidget);
+      expect(harness.bottomNavigation, findsNothing);
+
+      await harness.session.completeAccountSetup();
+      await tester.pumpAndSettle();
+
+      expect(harness.location, '/properties/42');
+      expect(find.text('Ваш объект'), findsOneWidget);
+    });
+
+    testWidgets('completing setup without from opens today', (
+      WidgetTester tester,
+    ) async {
+      final RouterHarness harness = await RouterHarness.pump(
+        tester,
+        signedIn: false,
+      );
+
+      await harness.session.signIn(testTokens, isAccountSetupPending: true);
+      await tester.pumpAndSettle();
+      expect(harness.location, '/account-setup');
+
+      await harness.session.completeAccountSetup();
+      await tester.pumpAndSettle();
+
+      expect(harness.location, '/today');
+      expect(harness.bottomNavigation, findsOneWidget);
+    });
+
+    testWidgets('a pending session keeps the user on account setup', (
+      WidgetTester tester,
+    ) async {
+      final RouterHarness harness = await RouterHarness.pump(
+        tester,
+        accountSetupPending: true,
+      );
+      expect(harness.location, '/account-setup');
+
+      await harness.go('/profile');
+
+      expect(harness.location, '/account-setup?from=%2Fprofile');
+      expect(find.byType(AccountSetupScreen), findsOneWidget);
+    });
+
+    testWidgets('a pending deep link opens setup with that location as from', (
+      WidgetTester tester,
+    ) async {
+      final RouterHarness harness = await RouterHarness.pump(
+        tester,
+        accountSetupPending: true,
+        initialLocation: '/properties/42',
+      );
+
+      expect(harness.location, '/account-setup?from=%2Fproperties%2F42');
+    });
+
+    testWidgets('leaving account setup signs out and returns to login', (
+      WidgetTester tester,
+    ) async {
+      final RouterHarness harness = await RouterHarness.pump(
+        tester,
+        accountSetupPending: true,
+      );
+
+      await tester.tap(find.bySemanticsLabel('Назад'));
+      await tester.pumpAndSettle();
+
+      expect(harness.session.isAuthenticated, isFalse);
+      expect(harness.storage.storedTokens, isNull);
+      expect(harness.location, '/login');
+      expect(find.byType(LoginScreen), findsOneWidget);
+    });
+
+    testWidgets('a new user goes from login through setup to from', (
+      WidgetTester tester,
+    ) async {
+      tester.view
+        ..physicalSize = const Size(430, 932)
+        ..devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final RouterHarness harness = await RouterHarness.pump(
+        tester,
+        signedIn: false,
+        initialLocation: '/properties/42',
+      );
+      harness.remote.verifyResponse = const VerifyCodeResponseModel(
+        accessToken: 'new-access',
+        isNewUser: true,
+      );
+
+      await tester.enterText(find.byType(TextField), '7001234567');
+      await tester.pump();
+      await tester.tap(find.text('Получить код'));
+      await tester.pumpAndSettle();
+
+      expect(harness.remote.sentPhones, <String>['+77001234567']);
+      final Uri verify = Uri.parse(harness.location);
+      expect(verify.path, '/login/verify');
+      expect(verify.queryParameters, <String, String>{
+        AppRoutes.phoneQuery: '+77001234567',
+        AppRoutes.resendAfterQuery: '30',
+        AppRoutes.fromQuery: '/properties/42',
+      });
+      expect(find.byType(VerifyCodeScreen), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), '482913');
+      await tester.pumpAndSettle();
+
+      expect(harness.remote.verifyCalls.single, (
+        phone: '+77001234567',
+        code: '482913',
+      ));
+      expect(harness.session.isAccountSetupPending, isTrue);
+      expect(harness.location, '/account-setup?from=%2Fproperties%2F42');
+      expect(find.byType(AccountSetupScreen), findsOneWidget);
+      expect(find.byType(VerifyCodeScreen), findsNothing);
+
+      final Finder fields = find.byType(TextField);
+      await tester.enterText(fields.at(0), 'Айгерим');
+      await tester.enterText(fields.at(1), 'Садыкова');
+      await tester.enterText(fields.at(2), 'aigerim@example.kz');
+      await tester.enterText(fields.at(3), 'Esentai Stay');
+      await tester.tap(find.text('Город и часовой пояс'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Астана'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Создать аккаунт'));
+      await tester.pumpAndSettle();
+
+      final Map<String, Object?> body = harness
+          .remote
+          .createAccountRequests
+          .single
+          .toJson();
+      expect(body['city'], KazakhstanCities.astana.id);
+      expect(harness.session.isAccountSetupPending, isFalse);
+      expect(harness.storage.storedAccountSetupPending, isFalse);
+      expect(harness.location, '/properties/42');
+      expect(find.text('Ваш объект'), findsOneWidget);
     });
 
     testWidgets('the root path opens today', (WidgetTester tester) async {
@@ -340,6 +659,75 @@ void main() {
       await RouterHarness.pump(tester, initialLocation: '/properties/1/nope');
 
       expect(find.byType(RouteNotFoundScreen), findsOneWidget);
+    });
+  });
+
+  group('verifyCode route', () {
+    testWidgets('without a phone redirects to login', (
+      WidgetTester tester,
+    ) async {
+      final RouterHarness harness = await RouterHarness.pump(
+        tester,
+        signedIn: false,
+        initialLocation: '/login/verify',
+      );
+
+      expect(harness.location, '/login');
+      expect(find.byType(LoginScreen), findsOneWidget);
+    });
+
+    testWidgets('with an invalid phone redirects to login keeping from', (
+      WidgetTester tester,
+    ) async {
+      final RouterHarness harness = await RouterHarness.pump(
+        tester,
+        signedIn: false,
+        initialLocation: '/login/verify?phone=123&from=%2Fprofile',
+      );
+
+      expect(harness.location, '/login?from=%2Fprofile');
+    });
+
+    testWidgets('normalizes a national phone for the screen', (
+      WidgetTester tester,
+    ) async {
+      await RouterHarness.pump(
+        tester,
+        signedIn: false,
+        initialLocation: '/login/verify?phone=7001234567&resendAfter=30',
+      );
+
+      expect(find.byType(VerifyCodeScreen), findsOneWidget);
+      expect(find.text('Отправили на +7 700 123 45 67'), findsOneWidget);
+      expect(find.text('Можно через 00:30'), findsOneWidget);
+    });
+
+    for (final String resendAfter in <String>['', 'abc', '-5', '1.5']) {
+      testWidgets('resendAfter "$resendAfter" defaults to zero', (
+        WidgetTester tester,
+      ) async {
+        await RouterHarness.pump(
+          tester,
+          signedIn: false,
+          initialLocation:
+              '/login/verify?phone=%2B77001234567&resendAfter=$resendAfter',
+        );
+
+        expect(find.byType(VerifyCodeScreen), findsOneWidget);
+        expect(find.textContaining('Можно через'), findsNothing);
+      });
+    }
+
+    testWidgets('a missing resendAfter defaults to zero', (
+      WidgetTester tester,
+    ) async {
+      await RouterHarness.pump(
+        tester,
+        signedIn: false,
+        initialLocation: '/login/verify?phone=%2B77001234567',
+      );
+
+      expect(find.textContaining('Можно через'), findsNothing);
     });
   });
 
