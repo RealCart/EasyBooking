@@ -1,3 +1,4 @@
+import 'package:easy_booking/app/theme/app_colors.dart';
 import 'package:easy_booking/app/theme/app_theme.dart';
 import 'package:easy_booking/core/widgets/feedback/app_callout.dart';
 import 'package:easy_booking/core/widgets/feedback/app_confirmation_dialog.dart';
@@ -43,6 +44,29 @@ void main() {
       expect(tester.takeException(), isNull);
       await tester.tap(find.text('View'));
       expect(tapped, isTrue);
+    });
+
+    testWidgets('callout uses the designed surface and title tone', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        buildSubject(
+          const SizedBox(
+            width: 400,
+            child: AppCallout(
+              title: 'Complete',
+              message: 'Calendars updated',
+              tone: AppFeedbackTone.success,
+            ),
+          ),
+        ),
+      );
+
+      expect(tester.getSize(find.byType(AppCallout)).height, 74);
+      final Text title = tester.widget<Text>(find.text('Complete'));
+      expect(title.style?.color, AppColors.success);
+      expect(title.style?.fontSize, 14);
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('empty state displays and invokes its action', (
@@ -93,10 +117,75 @@ void main() {
         ),
       );
 
-      expect(find.text('Rental agreement'), findsOneWidget);
+      expect(find.bySemanticsLabel(RegExp('Rental agreement')), findsOneWidget);
       expect(find.text('Draft created'), findsOneWidget);
       expect(find.text('Sent to guest'), findsOneWidget);
       expect(find.text('Signed'), findsOneWidget);
+    });
+
+    testWidgets('signature status labels are visible beside the rows', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        buildSubject(
+          const SizedBox(
+            width: 400,
+            child: AppSignatureProgress(
+              documentTitle: 'Agreement',
+              steps: <AppSignatureStep>[
+                AppSignatureStep(
+                  title: 'Guest',
+                  subtitle: 'Today',
+                  status: AppSignatureStepStatus.sent,
+                  statusLabel: 'Waiting',
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Waiting'), findsOneWidget);
+      expect(tester.getSize(find.byType(AppSignatureProgress)).height, 72);
+      final Text status = tester.widget<Text>(find.text('Waiting'));
+      expect(status.style?.color, AppColors.warning);
+    });
+
+    testWidgets('feedback layouts handle narrow width and enlarged text', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: const Scaffold(
+            body: MediaQuery(
+              data: MediaQueryData(textScaler: TextScaler.linear(1.5)),
+              child: SingleChildScrollView(
+                child: SizedBox(
+                  width: 240,
+                  child: Column(
+                    children: <Widget>[
+                      AppEmptyState(
+                        title: 'No properties found',
+                        message:
+                            'Change your search or clear the current filters.',
+                        actionLabel: 'Clear filters',
+                      ),
+                      AppConflictCard(
+                        title: 'Overlapping reservations',
+                        message: 'These reservations need your attention.',
+                        primaryActionLabel: 'Resolve conflict',
+                        secondaryActionLabel: 'Open calendar',
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('conflict card invokes both resolution actions', (

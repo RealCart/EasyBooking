@@ -13,7 +13,7 @@ class AppGuestBookingSummary extends StatelessWidget {
     this.trailingText,
     this.action,
     this.onTap,
-    this.showDivider = true,
+    this.showDivider = false,
   });
 
   final String guestName;
@@ -42,77 +42,75 @@ class AppGuestBookingSummary extends StatelessWidget {
       ),
     );
 
-    return Material(
-      color: AppColors.background,
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 72),
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            border: showDivider
-                ? const Border(bottom: BorderSide(color: AppColors.border))
-                : null,
-          ),
-          child: Row(
-            children: <Widget>[
-              ClipOval(
-                child: SizedBox.square(
-                  dimension: 48,
-                  child: avatar ?? fallbackAvatar,
-                ),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 44),
+        padding: EdgeInsets.zero,
+        decoration: BoxDecoration(
+          border: showDivider
+              ? const Border(bottom: BorderSide(color: AppColors.border))
+              : null,
+        ),
+        child: Row(
+          children: <Widget>[
+            ClipOval(
+              child: SizedBox.square(
+                dimension: 44,
+                child: avatar ?? fallbackAvatar,
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      guestName,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.primaryText.copyWith(
-                        color: AppColors.text,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      stayDetails,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.compactBody.copyWith(
-                        color: AppColors.secondaryText,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (trailingText != null) ...<Widget>[
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    trailingText!,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    guestName,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.end,
-                    style: AppTypography.caption.copyWith(
+                    style: AppTypography.action.copyWith(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.text,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    stayDetails,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.compactBody.copyWith(
                       color: AppColors.secondaryText,
                     ),
                   ),
+                ],
+              ),
+            ),
+            if (trailingText != null) ...<Widget>[
+              const SizedBox(width: 8),
+              Text(
+                trailingText!,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.end,
+                style: AppTypography.action.copyWith(
+                  color: AppColors.text,
                 ),
-              ],
-              if (action != null) ...<Widget>[
-                const SizedBox(width: 4),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    minWidth: 44,
-                    minHeight: 44,
-                  ),
-                  child: Center(child: action),
-                ),
-              ],
+              ),
             ],
-          ),
+            if (action != null) ...<Widget>[
+              const SizedBox(width: 4),
+              ConstrainedBox(
+                constraints: const BoxConstraints(
+                  minWidth: 44,
+                  minHeight: 44,
+                ),
+                child: Center(child: action),
+              ),
+            ],
+          ],
         ),
       ),
     );

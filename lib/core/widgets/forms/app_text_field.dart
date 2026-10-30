@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
 import 'package:easy_booking/app/theme/app_colors.dart';
+import 'package:easy_booking/app/theme/app_radii.dart';
 import 'package:easy_booking/app/theme/app_typography.dart';
 
-class AppTextField extends StatelessWidget {
+class AppTextField extends StatefulWidget {
   const AppTextField({
     this.controller,
     this.initialValue,
@@ -52,58 +53,159 @@ class AppTextField extends StatelessWidget {
   final Iterable<String>? autofillHints;
 
   @override
-  Widget build(BuildContext context) {
-    return TextFormField(
-      controller: controller,
-      initialValue: initialValue,
-      focusNode: focusNode,
-      onChanged: onChanged,
-      onFieldSubmitted: onSubmitted,
-      onTap: onTap,
-      keyboardType: keyboardType,
-      textInputAction: textInputAction,
-      obscureText: obscureText,
-      enabled: enabled,
-      readOnly: readOnly,
-      autocorrect: autocorrect,
-      maxLines: maxLines,
-      minLines: minLines,
-      autofillHints: autofillHints,
-      cursorColor: AppColors.accent,
-      style: AppTypography.bodyLarge.copyWith(color: AppColors.text),
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        errorText: errorText,
-        prefixIcon: leading,
-        suffixIcon: trailing,
-        filled: true,
-        fillColor: enabled ? AppColors.surface : AppColors.surface,
-        labelStyle: AppTypography.body.copyWith(color: AppColors.secondaryText),
-        floatingLabelStyle: AppTypography.body.copyWith(
-          color: errorText == null ? AppColors.accent : AppColors.error,
-        ),
-        hintStyle: AppTypography.bodyLarge.copyWith(
-          color: AppColors.secondaryText,
-        ),
-        errorStyle: AppTypography.caption.copyWith(color: AppColors.error),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 16,
-        ),
-        enabledBorder: _border(AppColors.border),
-        disabledBorder: _border(AppColors.border),
-        focusedBorder: _border(AppColors.accent, width: 2),
-        errorBorder: _border(AppColors.error),
-        focusedErrorBorder: _border(AppColors.error, width: 2),
-      ),
-    );
+  State<AppTextField> createState() => _AppTextFieldState();
+}
+
+class _AppTextFieldState extends State<AppTextField> {
+  FocusNode? _ownedFocusNode;
+  FocusNode get _focusNode =>
+      widget.focusNode ?? (_ownedFocusNode ??= FocusNode());
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(_handleFocus);
   }
 
-  static OutlineInputBorder _border(Color color, {double width = 1}) {
-    return OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
-      borderSide: BorderSide(color: color, width: width),
+  @override
+  void didUpdateWidget(covariant AppTextField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.focusNode != widget.focusNode) {
+      (oldWidget.focusNode ?? _ownedFocusNode)?.removeListener(_handleFocus);
+      if (widget.focusNode != null) {
+        _ownedFocusNode?.dispose();
+        _ownedFocusNode = null;
+      }
+      _focusNode.addListener(_handleFocus);
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_handleFocus);
+    _ownedFocusNode?.dispose();
+    super.dispose();
+  }
+
+  void _handleFocus() => setState(() {});
+
+  @override
+  Widget build(BuildContext context) {
+    final bool hasError = widget.errorText != null;
+    final Color borderColor = hasError
+        ? AppColors.error
+        : _focusNode.hasFocus
+        ? AppColors.text
+        : AppColors.border;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Opacity(
+          opacity: widget.enabled ? 1 : 0.4,
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 72),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.background,
+              border: Border.all(
+                color: borderColor,
+                width: _focusNode.hasFocus && !hasError ? 2 : 1,
+              ),
+              borderRadius: BorderRadius.circular(AppRadii.field),
+            ),
+            child: Row(
+              children: <Widget>[
+                if (widget.leading != null) ...<Widget>[
+                  widget.leading!,
+                  const SizedBox(width: 12),
+                ],
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      if (widget.label case final String label) ...<Widget>[
+                        ExcludeSemantics(
+                          child: Text(
+                            label,
+                            style:
+                                const TextStyle(
+                                  fontFamily: AppTypography.fontFamily,
+                                  fontSize: 12,
+                                  height: 18 / 12,
+                                ).copyWith(
+                                  color: hasError
+                                      ? AppColors.error
+                                      : AppColors.secondaryText,
+                                ),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                      ],
+                      Semantics(
+                        label: <String>[
+                          if (widget.label case final String label) label,
+                          if (widget.errorText case final String error) error,
+                        ].join(', '),
+                        child: TextFormField(
+                          controller: widget.controller,
+                          initialValue: widget.initialValue,
+                          focusNode: _focusNode,
+                          onChanged: widget.onChanged,
+                          onFieldSubmitted: widget.onSubmitted,
+                          onTap: widget.onTap,
+                          keyboardType: widget.keyboardType,
+                          textInputAction: widget.textInputAction,
+                          obscureText: widget.obscureText,
+                          enabled: widget.enabled,
+                          readOnly: widget.readOnly,
+                          autocorrect: widget.autocorrect,
+                          maxLines: widget.maxLines,
+                          minLines: widget.minLines,
+                          autofillHints: widget.autofillHints,
+                          cursorColor: AppColors.accent,
+                          style: AppTypography.bodyLarge.copyWith(
+                            color: AppColors.text,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: widget.hint,
+                            hintStyle: AppTypography.bodyLarge.copyWith(
+                              color: AppColors.secondaryText,
+                            ),
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            disabledBorder: InputBorder.none,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (widget.trailing != null) ...<Widget>[
+                  const SizedBox(width: 8),
+                  widget.trailing!,
+                ],
+              ],
+            ),
+          ),
+        ),
+        if (widget.errorText case final String errorText) ...<Widget>[
+          const SizedBox(height: 6),
+          Text(
+            errorText,
+            style: const TextStyle(
+              fontFamily: AppTypography.fontFamily,
+              fontSize: 12,
+              height: 18 / 12,
+              color: AppColors.error,
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

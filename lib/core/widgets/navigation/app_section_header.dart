@@ -1,7 +1,7 @@
+import 'package:easy_booking/core/widgets/actions/app_text_button.dart';
 import 'package:flutter/material.dart';
 
 import 'package:easy_booking/app/theme/app_colors.dart';
-import 'package:easy_booking/app/theme/app_sizes.dart';
 import 'package:easy_booking/app/theme/app_spacing.dart';
 import 'package:easy_booking/app/theme/app_typography.dart';
 
@@ -44,6 +44,7 @@ final class AppSectionHeader extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: AppTypography.sectionTitle.copyWith(
                     color: AppColors.text,
+                    letterSpacing: -0.36,
                   ),
                 ),
                 if (subtitle != null) ...<Widget>[
@@ -62,18 +63,7 @@ final class AppSectionHeader extends StatelessWidget {
           ),
           if (actionLabel != null) ...<Widget>[
             const SizedBox(width: AppSpacing.medium),
-            TextButton(
-              style: TextButton.styleFrom(
-                minimumSize: const Size(0, AppSizes.touchTarget),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.small,
-                ),
-                foregroundColor: AppColors.text,
-                textStyle: AppTypography.action,
-              ),
-              onPressed: onAction,
-              child: Text(actionLabel),
-            ),
+            AppTextButton.underlined(label: actionLabel),
           ],
         ],
       ),

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'package:easy_booking/app/theme/app_colors.dart';
-import 'package:easy_booking/core/widgets/forms/app_text_field.dart';
+import 'package:easy_booking/app/theme/app_radii.dart';
+import 'package:easy_booking/app/theme/app_typography.dart';
 
 enum AppValueFieldType { money, time }
 
@@ -35,36 +36,56 @@ class AppValueField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Widget leading = switch (type) {
-      AppValueFieldType.money => Center(
-        widthFactor: 1,
-        child: Text(
-          currencySymbol,
-          style: const TextStyle(color: AppColors.secondaryText, fontSize: 16),
+    OutlineInputBorder border(Color color, [double width = 1]) =>
+        OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadii.field),
+          borderSide: BorderSide(color: color, width: width),
+        );
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        if (label case final String label) ...<Widget>[
+          Text(
+            label,
+            style: AppTypography.caption.copyWith(
+              color: AppColors.secondaryText,
+            ),
+          ),
+          const SizedBox(height: 4),
+        ],
+        TextFormField(
+          controller: controller,
+          initialValue: initialValue,
+          enabled: enabled,
+          readOnly: readOnly,
+          onTap: onTap,
+          onChanged: onChanged,
+          keyboardType: type == AppValueFieldType.money
+              ? const TextInputType.numberWithOptions(decimal: true)
+              : TextInputType.datetime,
+          textInputAction: TextInputAction.done,
+          style: AppTypography.body.copyWith(color: AppColors.text),
+          decoration: InputDecoration(
+            hintText: hint,
+            errorText: errorText,
+            suffixText: type == AppValueFieldType.money ? currencySymbol : null,
+            suffixStyle: AppTypography.body.copyWith(color: AppColors.text),
+            isDense: true,
+            filled: true,
+            fillColor: AppColors.background,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 10,
+            ),
+            enabledBorder: border(AppColors.border),
+            disabledBorder: border(AppColors.border),
+            focusedBorder: border(AppColors.text, 2),
+            errorBorder: border(AppColors.error),
+            focusedErrorBorder: border(AppColors.error),
+          ),
         ),
-      ),
-      AppValueFieldType.time => const Icon(
-        Icons.access_time,
-        color: AppColors.secondaryText,
-        size: 20,
-      ),
-    };
-
-    return AppTextField(
-      controller: controller,
-      initialValue: initialValue,
-      label: label,
-      hint: hint,
-      errorText: errorText,
-      leading: leading,
-      enabled: enabled,
-      readOnly: readOnly,
-      onTap: onTap,
-      onChanged: onChanged,
-      keyboardType: type == AppValueFieldType.money
-          ? const TextInputType.numberWithOptions(decimal: true)
-          : TextInputType.datetime,
-      textInputAction: TextInputAction.done,
+      ],
     );
   }
 }

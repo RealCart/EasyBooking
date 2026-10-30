@@ -29,7 +29,7 @@ void main() {
       expect(selectedIndex, 1);
       expect(addCount, 0);
 
-      await tester.tap(find.byTooltip('Добавить'));
+      await tester.tap(find.bySemanticsLabel('Добавить'));
       await tester.pump();
       expect(selectedIndex, 1);
       expect(addCount, 1);

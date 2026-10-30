@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'package:easy_booking/app/theme/app_colors.dart';
 import 'package:easy_booking/app/theme/app_typography.dart';
-import 'package:easy_booking/core/widgets/actions/app_button.dart';
+import 'package:easy_booking/core/widgets/actions/app_primary_button.dart';
+import 'package:easy_booking/core/widgets/actions/app_secondary_button.dart';
 
 class AppFlowFooter extends StatelessWidget {
   const AppFlowFooter({
@@ -12,6 +13,7 @@ class AppFlowFooter extends StatelessWidget {
     this.onSecondaryPressed,
     this.message,
     this.primaryLoading = false,
+    this.showTopDivider = true,
     super.key,
   }) : assert(
          (secondaryLabel == null && onSecondaryPressed == null) ||
@@ -24,18 +26,21 @@ class AppFlowFooter extends StatelessWidget {
   final VoidCallback? onSecondaryPressed;
   final String? message;
   final bool primaryLoading;
+  final bool showTopDivider;
 
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.background,
-        border: Border(top: BorderSide(color: AppColors.border)),
+        border: showTopDivider
+            ? const Border(top: BorderSide(color: AppColors.border))
+            : null,
       ),
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
@@ -43,29 +48,27 @@ class AppFlowFooter extends StatelessWidget {
               if (message case final String message) ...<Widget>[
                 Text(
                   message,
-                  style: AppTypography.body.copyWith(
+                  textAlign: TextAlign.center,
+                  style: AppTypography.compactBody.copyWith(
                     color: AppColors.secondaryText,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
               ],
               LayoutBuilder(
                 builder: (BuildContext context, BoxConstraints constraints) {
-                  final Widget primaryButton = AppButton(
+                  final Widget primaryButton = AppPrimaryButton.compact(
                     label: primaryLabel,
                     onPressed: onPrimaryPressed,
                     isLoading: primaryLoading,
-                    isExpanded: true,
                   );
                   if (secondaryLabel == null) {
                     return primaryButton;
                   }
 
-                  final Widget secondaryButton = AppButton(
+                  final Widget secondaryButton = AppSecondaryButton(
                     label: secondaryLabel!,
                     onPressed: onSecondaryPressed,
-                    variant: AppButtonVariant.secondary,
-                    isExpanded: true,
                   );
                   if (constraints.maxWidth < 360) {
                     return Column(

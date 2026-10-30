@@ -46,7 +46,7 @@ void main() {
       ),
     );
 
-    await tester.tap(find.byTooltip('Back'));
+    await tester.tap(find.bySemanticsLabel('Back'));
     await tester.pump();
 
     expect(backCount, 1);
@@ -71,7 +71,7 @@ void main() {
     );
 
     expect(find.text('2 из 3'), findsOneWidget);
-    await tester.tap(find.byTooltip('Back'));
+    await tester.tap(find.bySemanticsLabel('Back'));
     await tester.pump();
     expect(backCount, 1);
   });

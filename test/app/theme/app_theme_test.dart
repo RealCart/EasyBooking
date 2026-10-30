@@ -28,22 +28,48 @@ void main() {
       expect(AppTypography.caption.fontSize, 12);
     });
 
-    test('uses Paper button colors for every interaction state', () {
+    test('suppresses default ripple, highlight, and hover feedback', () {
       final WidgetStateProperty<Color?>? backgroundColor =
           theme.filledButtonTheme.style?.backgroundColor;
+      final WidgetStateProperty<Color?>? overlayColor =
+          theme.filledButtonTheme.style?.overlayColor;
 
+      expect(theme.splashFactory, same(NoSplash.splashFactory));
+      expect(theme.splashColor, Colors.transparent);
+      expect(theme.highlightColor, Colors.transparent);
+      expect(theme.hoverColor, Colors.transparent);
       expect(backgroundColor?.resolve(<WidgetState>{}), AppColors.accent);
       expect(
         backgroundColor?.resolve(<WidgetState>{WidgetState.hovered}),
-        AppColors.accentHover,
+        AppColors.accent,
       );
       expect(
         backgroundColor?.resolve(<WidgetState>{WidgetState.pressed}),
-        AppColors.accentPressed,
+        AppColors.accent,
       );
       expect(
         backgroundColor?.resolve(<WidgetState>{WidgetState.disabled}),
         AppColors.border,
+      );
+      expect(
+        overlayColor?.resolve(<WidgetState>{WidgetState.hovered}),
+        Colors.transparent,
+      );
+      expect(
+        overlayColor?.resolve(<WidgetState>{WidgetState.pressed}),
+        Colors.transparent,
+      );
+      expect(
+        theme.textButtonTheme.style?.overlayColor?.resolve(<WidgetState>{
+          WidgetState.hovered,
+        }),
+        Colors.transparent,
+      );
+      expect(
+        theme.iconButtonTheme.style?.overlayColor?.resolve(<WidgetState>{
+          WidgetState.pressed,
+        }),
+        Colors.transparent,
       );
     });
 

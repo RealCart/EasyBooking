@@ -23,35 +23,43 @@ final class AppResendTimerRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final Duration? remaining = this.remaining;
     final bool isWaiting = remaining != null && remaining > Duration.zero;
-    final String label = isWaiting
-        ? '$actionLabel ${_formatDuration(remaining)}'
-        : actionLabel;
-
-    return Row(
-      children: <Widget>[
-        Expanded(
-          child: Text(
-            prompt,
-            style: AppTypography.body.copyWith(
-              color: AppColors.secondaryText,
-            ),
-          ),
+    return Semantics(
+      label: prompt,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          border: Border(bottom: BorderSide(color: AppColors.border)),
         ),
-        const SizedBox(width: AppSpacing.medium),
-        TextButton(
-          style: TextButton.styleFrom(
-            minimumSize: const Size(0, AppSizes.touchTarget),
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.small,
+        child: Row(
+          children: <Widget>[
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(0, AppSizes.touchTarget),
+                    padding: EdgeInsets.zero,
+                    foregroundColor: AppColors.text,
+                    overlayColor: Colors.transparent,
+                    disabledForegroundColor: AppColors.text,
+                    textStyle: AppTypography.action,
+                  ),
+                  onPressed: isWaiting ? null : onResend,
+                  child: Text(actionLabel),
+                ),
+              ),
             ),
-            foregroundColor: AppColors.text,
-            disabledForegroundColor: AppColors.secondaryText,
-            textStyle: AppTypography.action,
-          ),
-          onPressed: isWaiting ? null : onResend,
-          child: Text(label),
+            if (isWaiting) ...<Widget>[
+              const SizedBox(width: AppSpacing.medium),
+              Text(
+                _formatDuration(remaining),
+                style: AppTypography.compactBody.copyWith(
+                  color: AppColors.secondaryText,
+                ),
+              ),
+            ],
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -59,6 +67,6 @@ final class AppResendTimerRow extends StatelessWidget {
     final int totalSeconds = duration.inSeconds;
     final int minutes = totalSeconds ~/ Duration.secondsPerMinute;
     final int seconds = totalSeconds % Duration.secondsPerMinute;
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 }

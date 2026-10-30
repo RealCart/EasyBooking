@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/widget_previews.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:easy_booking/app/constants/assets/app_assets.dart';
 import 'package:easy_booking/app/theme/app_colors.dart';
@@ -20,6 +21,13 @@ import 'package:easy_booking/core/widgets/previews/app_preview_gallery.dart';
   name: 'Navigation & Structure',
   group: 'EasyBooking Core Widgets',
   size: Size(430, 900),
+  wrapper: appWidgetPreviewWrapper,
+)
+@Preview(
+  name: 'Navigation & Structure · Narrow / Large Text',
+  group: 'EasyBooking Core Widgets',
+  size: Size(320, 800),
+  textScaleFactor: 1.5,
   wrapper: appWidgetPreviewWrapper,
 )
 Widget navigationWidgetsPreview() => const NavigationPreviewGallery();
@@ -97,10 +105,20 @@ class _NavigationPreviewGalleryState extends State<NavigationPreviewGallery> {
             child: AppRootHeader(
               title: 'Today',
               subtitle: 'Thursday, 22 October',
-              action: IconButton(
-                tooltip: 'Notifications',
-                onPressed: () => _show('Notifications tapped'),
-                icon: const Icon(Icons.notifications_none),
+              action: Semantics(
+                button: true,
+                label: 'Notifications',
+                child: SizedBox.square(
+                  dimension: 40,
+                  child: IconButton(
+                    onPressed: () => _show('Notifications tapped'),
+                    icon: SvgPicture.asset(
+                      AppAssets.icons.notification,
+                      width: 22,
+                      height: 22,
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
@@ -110,6 +128,15 @@ class _NavigationPreviewGalleryState extends State<NavigationPreviewGallery> {
               title: 'Your property',
               onBack: () => _show('Back tapped'),
               action: TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.text,
+                  overlayColor: Colors.transparent,
+                  textStyle: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
                 onPressed: () => _show('Edit tapped'),
                 child: const Text('Edit'),
               ),
@@ -205,7 +232,6 @@ class _NavigationPreviewGalleryState extends State<NavigationPreviewGallery> {
             child: AppStickyActionBar.rate(
               rate: '42 500 ₸',
               rateCaption: 'Base price per night',
-              leading: const Icon(Icons.payments_outlined),
               primaryLabel: 'Calendar',
               onPrimaryPressed: () => _show('Calendar tapped'),
             ),

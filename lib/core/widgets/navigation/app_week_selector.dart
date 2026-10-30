@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 
 import 'package:easy_booking/app/theme/app_colors.dart';
 import 'package:easy_booking/app/theme/app_radii.dart';
-import 'package:easy_booking/app/theme/app_sizes.dart';
 import 'package:easy_booking/app/theme/app_typography.dart';
 
 final class AppWeekDay {
@@ -31,7 +30,8 @@ final class AppWeekSelector extends StatelessWidget {
     super.key,
   }) : assert(days.length == 7);
 
-  static const double _minimumWidth = AppSizes.touchTarget * 7;
+  static const double _dayWidth = 48;
+  static const double _minimumWidth = _dayWidth * 7;
 
   final List<AppWeekDay> days;
   final DateTime selectedDate;
@@ -39,35 +39,35 @@ final class AppWeekSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 64,
-      child: LayoutBuilder(
-        builder: (BuildContext context, BoxConstraints constraints) {
-          final double width = math.max(_minimumWidth, constraints.maxWidth);
-          return SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: SizedBox(
-              width: width,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: days.map((AppWeekDay day) {
-                  final bool isSelected = DateUtils.isSameDay(
-                    day.date,
-                    selectedDate,
-                  );
-                  return Expanded(
-                    child: _WeekDayButton(
-                      day: day,
-                      isSelected: isSelected,
-                      onPressed: day.isEnabled ? () => onSelected(day) : null,
-                    ),
-                  );
-                }).toList(),
-              ),
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final double width = constraints.maxWidth.isFinite
+            ? math.max(_minimumWidth, constraints.maxWidth)
+            : _minimumWidth;
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: SizedBox(
+            width: width,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: days.map((AppWeekDay day) {
+                final bool isSelected = DateUtils.isSameDay(
+                  day.date,
+                  selectedDate,
+                );
+                return SizedBox(
+                  width: _dayWidth,
+                  child: _WeekDayButton(
+                    day: day,
+                    isSelected: isSelected,
+                    onPressed: day.isEnabled ? () => onSelected(day) : null,
+                  ),
+                );
+              }).toList(),
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }
@@ -96,16 +96,21 @@ final class _WeekDayButton extends StatelessWidget {
       enabled: onPressed != null,
       selected: isSelected,
       label: day.semanticLabel ?? '${day.weekdayLabel}, ${day.date.day}',
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onPressed,
+      child: GestureDetector(
+        onTap: onPressed,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.text : Colors.transparent,
+            borderRadius: const BorderRadius.all(
+              Radius.circular(AppRadii.pill),
+            ),
+          ),
           child: ConstrainedBox(
             constraints: const BoxConstraints(
-              minHeight: AppSizes.touchTarget,
+              minHeight: 68,
             ),
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
+              padding: const EdgeInsets.symmetric(vertical: 10),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
@@ -115,27 +120,19 @@ final class _WeekDayButton extends StatelessWidget {
                     style: AppTypography.caption.copyWith(
                       color: onPressed == null
                           ? AppColors.secondaryText.withValues(alpha: 0.4)
+                          : isSelected
+                          ? AppColors.background
                           : AppColors.secondaryText,
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: isSelected ? AppColors.accent : Colors.transparent,
-                      borderRadius: const BorderRadius.all(
-                        Radius.circular(AppRadii.pill),
-                      ),
-                    ),
-                    child: SizedBox.square(
-                      dimension: 30,
-                      child: Center(
-                        child: Text(
-                          day.dayLabel,
-                          style: AppTypography.action.copyWith(
-                            color: foregroundColor,
-                          ),
-                        ),
-                      ),
+                  const SizedBox(height: 4),
+                  Text(
+                    day.dayLabel,
+                    style: AppTypography.bodyLarge.copyWith(
+                      color: foregroundColor,
+                      fontWeight: isSelected
+                          ? FontWeight.w600
+                          : FontWeight.w400,
                     ),
                   ),
                 ],

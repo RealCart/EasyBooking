@@ -87,6 +87,7 @@ class _FormsPreviewState extends State<_FormsPreview> {
           child: AppSearchField(
             controller: _searchController,
             hint: 'Search properties',
+            subtitle: 'Name or address',
             onSubmitted: (String value) => _notify('Searching for “$value”'),
           ),
         ),

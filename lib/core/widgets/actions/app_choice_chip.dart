@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:easy_booking/app/theme/app_colors.dart';
+import 'package:easy_booking/app/theme/app_radii.dart';
 import 'package:easy_booking/app/theme/app_typography.dart';
 
 class AppChoiceChip extends StatelessWidget {
@@ -8,40 +9,38 @@ class AppChoiceChip extends StatelessWidget {
     required this.label,
     required this.isSelected,
     required this.onSelected,
-    this.enabled = true,
-    this.leading,
     super.key,
   });
 
   final String label;
   final bool isSelected;
   final ValueChanged<bool>? onSelected;
-  final bool enabled;
-  final Widget? leading;
 
   @override
   Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 44),
-      child: ChoiceChip(
-        avatar: leading,
-        label: Text(label),
-        selected: isSelected,
-        onSelected: enabled ? onSelected : null,
-        showCheckmark: false,
-        backgroundColor: AppColors.background,
-        disabledColor: AppColors.surface,
-        selectedColor: AppColors.accent,
-        side: BorderSide(
-          color: isSelected ? AppColors.accent : AppColors.border,
+    final Color foreground = isSelected ? AppColors.onAccent : AppColors.text;
+
+    return GestureDetector(
+      onTap: () => onSelected!(!isSelected),
+      excludeFromSemantics: true,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppRadii.pill),
+          color: isSelected ? AppColors.text : AppColors.surface,
         ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(999),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            vertical: 8,
+            horizontal: 16.0,
+          ),
+          child: Text(
+            label,
+            style: AppTypography.compactBody.copyWith(
+              color: foreground,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ),
-        labelStyle: AppTypography.action.copyWith(
-          color: isSelected ? AppColors.onAccent : AppColors.text,
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       ),
     );
   }

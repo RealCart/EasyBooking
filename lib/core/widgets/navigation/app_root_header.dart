@@ -11,9 +11,9 @@ final class AppRootHeader extends StatelessWidget {
     this.action,
     this.padding = const EdgeInsetsDirectional.fromSTEB(
       AppSpacing.xLarge,
-      AppSpacing.large,
-      AppSpacing.xLarge,
       AppSpacing.medium,
+      AppSpacing.xLarge,
+      20,
     ),
     super.key,
   });
@@ -31,7 +31,7 @@ final class AppRootHeader extends StatelessWidget {
     return Padding(
       padding: padding,
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
           Expanded(
             child: Column(
@@ -43,6 +43,7 @@ final class AppRootHeader extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: AppTypography.screenTitle.copyWith(
                     color: AppColors.text,
+                    letterSpacing: -0.98,
                   ),
                 ),
                 if (subtitle != null) ...<Widget>[

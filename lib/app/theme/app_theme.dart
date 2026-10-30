@@ -49,6 +49,10 @@ abstract final class AppTheme {
       cardColor: AppColors.background,
       dividerColor: AppColors.border,
       disabledColor: AppColors.border,
+      splashFactory: NoSplash.splashFactory,
+      splashColor: Colors.transparent,
+      highlightColor: Colors.transparent,
+      hoverColor: Colors.transparent,
       fontFamily: AppTypography.fontFamily,
       textTheme: AppTypography.textTheme.apply(
         bodyColor: AppColors.text,
@@ -98,14 +102,11 @@ abstract final class AppTheme {
             if (states.contains(WidgetState.disabled)) {
               return AppColors.border;
             }
-            if (states.contains(WidgetState.pressed)) {
-              return AppColors.accentPressed;
-            }
-            if (states.contains(WidgetState.hovered)) {
-              return AppColors.accentHover;
-            }
             return AppColors.accent;
           }),
+          overlayColor: const WidgetStatePropertyAll<Color>(
+            Colors.transparent,
+          ),
         ),
       ),
       outlinedButtonTheme: const OutlinedButtonThemeData(
@@ -125,6 +126,17 @@ abstract final class AppTheme {
           side: WidgetStatePropertyAll<BorderSide>(
             BorderSide(color: AppColors.text),
           ),
+          overlayColor: WidgetStatePropertyAll<Color>(Colors.transparent),
+        ),
+      ),
+      textButtonTheme: const TextButtonThemeData(
+        style: ButtonStyle(
+          overlayColor: WidgetStatePropertyAll<Color>(Colors.transparent),
+        ),
+      ),
+      iconButtonTheme: const IconButtonThemeData(
+        style: ButtonStyle(
+          overlayColor: WidgetStatePropertyAll<Color>(Colors.transparent),
         ),
       ),
       inputDecorationTheme: const InputDecorationThemeData(

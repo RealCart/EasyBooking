@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
+import 'package:easy_booking/app/constants/assets/app_assets.dart';
 import 'package:easy_booking/app/theme/app_colors.dart';
 import 'package:easy_booking/app/theme/app_radii.dart';
 import 'package:easy_booking/app/theme/app_spacing.dart';
@@ -111,12 +113,10 @@ class AppPreviewSection extends StatelessWidget {
 class AppPreviewImage extends StatelessWidget {
   const AppPreviewImage({
     this.height = 140,
-    this.icon = Icons.apartment,
     super.key,
   });
 
   final double height;
-  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
@@ -124,7 +124,15 @@ class AppPreviewImage extends StatelessWidget {
       height: height,
       color: AppColors.surface,
       alignment: Alignment.center,
-      child: Icon(icon, color: AppColors.secondaryText, size: 40),
+      child: SvgPicture.asset(
+        AppAssets.icons.building,
+        width: 40,
+        height: 40,
+        colorFilter: const ColorFilter.mode(
+          AppColors.secondaryText,
+          BlendMode.srcIn,
+        ),
+      ),
     );
   }
 }

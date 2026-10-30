@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'package:easy_booking/app/theme/app_colors.dart';
+import 'package:easy_booking/app/theme/app_radii.dart';
+import 'package:easy_booking/app/theme/app_typography.dart';
 import 'package:easy_booking/core/widgets/forms/app_text_field.dart';
 
 class AppPhoneCountryFields extends StatelessWidget {
@@ -28,14 +31,58 @@ class AppPhoneCountryFields extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Widget countryField = AppTextField(
-      key: ValueKey<String>(countryValue),
-      initialValue: countryValue,
-      label: countryLabel,
-      readOnly: true,
-      enabled: enabled,
-      onTap: enabled ? onCountryPressed : null,
-      trailing: const Icon(Icons.keyboard_arrow_down, size: 20),
+    final VoidCallback? onSelectCountry = enabled ? onCountryPressed : null;
+    final Widget countryField = Semantics(
+      button: true,
+      enabled: onSelectCountry != null,
+      label: '$countryLabel, $countryValue',
+      onTap: onSelectCountry,
+      child: ExcludeSemantics(
+        child: Opacity(
+          opacity: onSelectCountry == null ? 0.4 : 1,
+          child: GestureDetector(
+            onTap: onSelectCountry,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                borderRadius: const BorderRadius.all(
+                  Radius.circular(AppRadii.field),
+                ),
+                border: .all(color: AppColors.border),
+              ),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 72),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 17,
+                    vertical: 13,
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Text(
+                        countryLabel,
+                        style: AppTypography.caption.copyWith(
+                          height: 18 / 12,
+                          color: AppColors.secondaryText,
+                        ),
+                      ),
+                      Text(
+                        countryValue,
+                        style: AppTypography.body.copyWith(
+                          color: AppColors.text,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
     final Widget phoneField = AppTextField(
       controller: phoneController,
@@ -51,9 +98,10 @@ class AppPhoneCountryFields extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
-        if (constraints.maxWidth < 420) {
+        if (constraints.maxWidth < 320) {
           return Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               countryField,
               const SizedBox(height: 12),
@@ -65,9 +113,9 @@ class AppPhoneCountryFields extends StatelessWidget {
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Expanded(flex: 2, child: countryField),
+            Expanded(flex: 71, child: countryField),
             const SizedBox(width: 12),
-            Expanded(flex: 3, child: phoneField),
+            Expanded(flex: 123, child: phoneField),
           ],
         );
       },

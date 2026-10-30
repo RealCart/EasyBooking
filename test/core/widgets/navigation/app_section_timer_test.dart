@@ -46,8 +46,8 @@ void main() {
       ),
     );
 
-    expect(find.text('Отправить снова 0:30'), findsOneWidget);
-    await tester.tap(find.text('Отправить снова 0:30'));
+    expect(find.text('00:30'), findsOneWidget);
+    await tester.tap(find.text('Отправить снова'));
     await tester.pump();
     expect(resendCount, 0);
   });

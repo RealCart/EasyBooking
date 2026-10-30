@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'package:easy_booking/app/theme/app_colors.dart';
-import 'package:easy_booking/app/theme/app_radii.dart';
 import 'package:easy_booking/app/theme/app_spacing.dart';
 import 'package:easy_booking/app/theme/app_typography.dart';
 
@@ -28,74 +27,79 @@ final class AppConflictCard extends StatelessWidget {
     return DecoratedBox(
       decoration: const BoxDecoration(
         color: AppColors.errorSurface,
-        borderRadius: BorderRadius.all(
-          Radius.circular(AppRadii.card),
-        ),
+        border: Border(left: BorderSide(color: AppColors.error, width: 3)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.large),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                const Icon(Icons.warning_amber_rounded, color: AppColors.error),
-                const SizedBox(width: AppSpacing.small),
-                Expanded(child: Text(title, style: AppTypography.sectionTitle)),
-              ],
+            Text(
+              title,
+              style: AppTypography.action.copyWith(color: AppColors.black),
             ),
-            const SizedBox(height: AppSpacing.small),
-            Text(message, style: AppTypography.body),
-            const SizedBox(height: AppSpacing.large),
-            LayoutBuilder(
-              builder: (BuildContext context, BoxConstraints constraints) {
-                final List<Widget> actions = <Widget>[
-                  if (secondaryActionLabel != null)
-                    OutlinedButton(
-                      onPressed: onSecondaryAction,
-                      child: Text(secondaryActionLabel!),
-                    ),
-                  FilledButton(
-                    onPressed: onPrimaryAction,
-                    child: Text(primaryActionLabel),
+            const SizedBox(height: AppSpacing.medium),
+            Text(
+              message,
+              style: AppTypography.compactBody.copyWith(
+                color: AppColors.secondaryText,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.medium),
+            Wrap(
+              spacing: AppSpacing.large,
+              children: <Widget>[
+                if (secondaryActionLabel != null)
+                  _ConflictAction(
+                    label: secondaryActionLabel!,
+                    onPressed: onSecondaryAction,
+                    color: AppColors.black,
+                    underlined: true,
                   ),
-                ];
-
-                if (constraints.maxWidth < 300) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children:
-                        actions
-                            .expand(
-                              (Widget action) => <Widget>[
-                                action,
-                                const SizedBox(height: AppSpacing.small),
-                              ],
-                            )
-                            .toList()
-                          ..removeLast(),
-                  );
-                }
-
-                return Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children:
-                      actions
-                          .expand(
-                            (Widget action) => <Widget>[
-                              action,
-                              const SizedBox(width: AppSpacing.small),
-                            ],
-                          )
-                          .toList()
-                        ..removeLast(),
-                );
-              },
+                _ConflictAction(
+                  label: primaryActionLabel,
+                  onPressed: onPrimaryAction,
+                  color: AppColors.error,
+                ),
+              ],
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+final class _ConflictAction extends StatelessWidget {
+  const _ConflictAction({
+    required this.label,
+    required this.onPressed,
+    required this.color,
+    this.underlined = false,
+  });
+
+  final String label;
+  final VoidCallback? onPressed;
+  final Color color;
+  final bool underlined;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton(
+      onPressed: onPressed,
+      style: TextButton.styleFrom(
+        foregroundColor: color,
+        overlayColor: Colors.transparent,
+        padding: EdgeInsets.zero,
+        minimumSize: const Size(44, 44),
+        textStyle: AppTypography.compactBody.copyWith(
+          fontWeight: FontWeight.w600,
+          decoration: underlined
+              ? TextDecoration.underline
+              : TextDecoration.none,
+        ),
+      ),
+      child: Text(label),
     );
   }
 }

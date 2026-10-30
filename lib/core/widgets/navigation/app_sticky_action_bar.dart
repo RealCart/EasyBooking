@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
 import 'package:easy_booking/app/theme/app_colors.dart';
-import 'package:easy_booking/app/theme/app_sizes.dart';
 import 'package:easy_booking/app/theme/app_spacing.dart';
 import 'package:easy_booking/app/theme/app_typography.dart';
+import 'package:easy_booking/core/widgets/actions/app_primary_button.dart';
+import 'package:easy_booking/core/widgets/forms/app_flow_footer.dart';
 
 final class AppStickyActionBar extends StatelessWidget {
   const AppStickyActionBar.rate({
@@ -16,6 +17,7 @@ final class AppStickyActionBar extends StatelessWidget {
     super.key,
   }) : title = rate,
        subtitle = rateCaption,
+       _isFlow = false,
        secondaryLabel = null,
        onSecondaryPressed = null;
 
@@ -33,6 +35,7 @@ final class AppStickyActionBar extends StatelessWidget {
        ),
        title = supportingText,
        subtitle = null,
+       _isFlow = true,
        leading = null;
 
   final String primaryLabel;
@@ -43,9 +46,20 @@ final class AppStickyActionBar extends StatelessWidget {
   final String? subtitle;
   final Widget? leading;
   final bool showTopDivider;
+  final bool _isFlow;
 
   @override
   Widget build(BuildContext context) {
+    if (_isFlow) {
+      return AppFlowFooter(
+        primaryLabel: primaryLabel,
+        onPrimaryPressed: onPrimaryPressed,
+        secondaryLabel: secondaryLabel,
+        onSecondaryPressed: onSecondaryPressed,
+        message: title,
+        showTopDivider: showTopDivider,
+      );
+    }
     return Material(
       color: AppColors.background,
       child: DecoratedBox(
@@ -60,7 +74,7 @@ final class AppStickyActionBar extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(
               AppSpacing.xLarge,
-              AppSpacing.medium,
+              AppSpacing.large,
               AppSpacing.xLarge,
               AppSpacing.xSmall,
             ),
@@ -68,8 +82,10 @@ final class AppStickyActionBar extends StatelessWidget {
               builder: (BuildContext context, BoxConstraints constraints) {
                 final bool shouldStack = constraints.maxWidth < 320;
                 final Widget? content = _buildContent();
-                final Widget actions = _buildActions(shouldStack);
-
+                final Widget actions = AppPrimaryButton.compact(
+                  label: primaryLabel,
+                  onPressed: onPrimaryPressed,
+                );
                 if (content == null) {
                   return actions;
                 }
@@ -87,7 +103,7 @@ final class AppStickyActionBar extends StatelessWidget {
                   children: <Widget>[
                     Expanded(child: content),
                     const SizedBox(width: AppSpacing.large),
-                    Flexible(child: actions),
+                    SizedBox(width: 156, child: actions),
                   ],
                 );
               },
@@ -113,7 +129,7 @@ final class AppStickyActionBar extends StatelessWidget {
           title,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: AppTypography.primaryText.copyWith(color: AppColors.text),
+          style: AppTypography.sectionTitle.copyWith(color: AppColors.text),
         ),
         if (subtitle != null)
           Text(
@@ -135,46 +151,6 @@ final class AppStickyActionBar extends StatelessWidget {
         leading,
         const SizedBox(width: AppSpacing.medium),
         Flexible(child: text),
-      ],
-    );
-  }
-
-  Widget _buildActions(bool shouldStack) {
-    final String? secondaryLabel = this.secondaryLabel;
-    final Widget primaryButton = SizedBox(
-      height: AppSizes.primaryButtonHeight,
-      child: FilledButton(
-        onPressed: onPrimaryPressed,
-        child: Text(primaryLabel),
-      ),
-    );
-
-    if (secondaryLabel == null) {
-      return primaryButton;
-    }
-    final Widget secondaryButton = SizedBox(
-      height: AppSizes.primaryButtonHeight,
-      child: OutlinedButton(
-        onPressed: onSecondaryPressed,
-        child: Text(secondaryLabel),
-      ),
-    );
-    if (shouldStack) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          primaryButton,
-          const SizedBox(height: AppSpacing.small),
-          secondaryButton,
-        ],
-      );
-    }
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        secondaryButton,
-        const SizedBox(width: AppSpacing.small),
-        primaryButton,
       ],
     );
   }

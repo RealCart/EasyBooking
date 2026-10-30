@@ -44,13 +44,14 @@ class AppStatusBadge extends StatelessWidget {
 
     return Semantics(
       label: label,
+      excludeSemantics: true,
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: colors.background,
           borderRadius: BorderRadius.circular(999),
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
@@ -61,11 +62,14 @@ class AppStatusBadge extends StatelessWidget {
                 ),
                 const SizedBox(width: 4),
               ],
-              Text(
-                label,
-                style: AppTypography.caption.copyWith(
-                  color: colors.foreground,
-                  fontWeight: FontWeight.w600,
+              Flexible(
+                child: Text(
+                  label,
+                  style: AppTypography.caption.copyWith(
+                    color: colors.foreground,
+                    fontWeight: FontWeight.w600,
+                    height: 18 / 12,
+                  ),
                 ),
               ),
             ],

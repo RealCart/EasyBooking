@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+
+import 'package:easy_booking/app/constants/assets/app_assets.dart';
 import 'package:easy_booking/app/theme/app_theme.dart';
 
 void main() {
@@ -58,8 +61,11 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
+        child: SvgPicture.asset(
+          AppAssets.icons.plus,
+          width: 24,
+          height: 24,
+        ),
       ),
     );
   }

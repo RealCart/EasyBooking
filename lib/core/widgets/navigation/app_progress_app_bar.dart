@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-
-import 'package:easy_booking/app/constants/assets/app_assets.dart';
 import 'package:easy_booking/app/theme/app_colors.dart';
-import 'package:easy_booking/app/theme/app_sizes.dart';
 import 'package:easy_booking/app/theme/app_spacing.dart';
 import 'package:easy_booking/app/theme/app_typography.dart';
+import 'package:easy_booking/core/widgets/navigation/app_header_back_button.dart';
 
 final class AppProgressAppBar extends StatelessWidget
     implements PreferredSizeWidget {
@@ -47,54 +44,42 @@ final class AppProgressAppBar extends StatelessWidget
         ),
         child: SizedBox(
           height: _height,
-          child: Row(
-            children: <Widget>[
-              Semantics(
-                button: true,
-                label: backSemanticLabel,
-                child: IconButton(
-                  constraints: const BoxConstraints.tightFor(
-                    width: AppSizes.touchTarget,
-                    height: AppSizes.touchTarget,
-                  ),
-                  padding: EdgeInsets.zero,
-                  tooltip: backSemanticLabel,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xLarge),
+            child: Row(
+              children: <Widget>[
+                AppHeaderBackButton(
+                  semanticLabel: backSemanticLabel,
                   onPressed: onBack,
-                  icon: SvgPicture.asset(
-                    AppAssets.icons.chevronLeft,
-                    width: AppSizes.iconAppBar,
-                    height: AppSizes.iconAppBar,
-                    colorFilter: const ColorFilter.mode(
-                      AppColors.text,
-                      BlendMode.srcIn,
+                ),
+                Expanded(
+                  child: Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.primaryText.copyWith(
+                      color: AppColors.text,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: AppSpacing.xSmall),
-              Expanded(
-                child: Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTypography.primaryText.copyWith(
-                    color: AppColors.text,
+                SizedBox(
+                  width: 64,
+                  child: Semantics(
+                    label: '$currentStep of $totalSteps',
+                    child: Text(
+                      '$currentStep$stepSeparator$totalSteps',
+                      textAlign: TextAlign.end,
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.text,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: AppSpacing.small),
-              Semantics(
-                label: '$currentStep of $totalSteps',
-                child: Text(
-                  '$currentStep$stepSeparator$totalSteps',
-                  style: AppTypography.body.copyWith(
-                    color: AppColors.secondaryText,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.large),
-            ],
+              ],
+            ),
           ),
         ),
       ),

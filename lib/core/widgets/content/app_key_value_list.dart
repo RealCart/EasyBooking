@@ -32,15 +32,22 @@ class AppKeyValueList extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: padding,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          for (int index = 0; index < rows.length; index++)
-            _KeyValueRowView(
-              row: rows[index],
-              showDivider: showDividers && index < rows.length - 1,
-            ),
-        ],
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: showDividers
+              ? const Border(top: BorderSide(color: AppColors.border))
+              : null,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            for (int index = 0; index < rows.length; index++)
+              _KeyValueRowView(
+                row: rows[index],
+                showDivider: showDividers,
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -55,8 +62,8 @@ class _KeyValueRowView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(minHeight: 52),
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      constraints: const BoxConstraints(minHeight: 49),
+      padding: const EdgeInsets.symmetric(vertical: 14),
       decoration: BoxDecoration(
         border: showDivider
             ? const Border(bottom: BorderSide(color: AppColors.border))

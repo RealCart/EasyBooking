@@ -1,5 +1,8 @@
+import 'package:easy_booking/core/widgets/actions/app_text_button.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
+import 'package:easy_booking/app/constants/assets/app_assets.dart';
 import 'package:easy_booking/app/theme/app_colors.dart';
 import 'package:easy_booking/app/theme/app_typography.dart';
 
@@ -7,87 +10,74 @@ class AppContractPreview extends StatelessWidget {
   const AppContractPreview({
     required this.title,
     required this.details,
-    super.key,
-    this.leading,
-    this.action,
     this.onTap,
+    super.key,
   });
 
   final String title;
   final String details;
-  final Widget? leading;
-  final Widget? action;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final BorderRadius borderRadius = BorderRadius.circular(16);
-
-    return Material(
-      color: AppColors.background,
-      shape: RoundedRectangleBorder(
-        borderRadius: borderRadius,
-        side: const BorderSide(color: AppColors.border),
-      ),
-      child: InkWell(
-        borderRadius: borderRadius,
-        onTap: onTap,
+    return GestureDetector(
+      onTap: onTap,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: .circular(12),
+          color: AppColors.surface,
+        ),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
             children: <Widget>[
               DecoratedBox(
                 decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(12),
+                  color: AppColors.background,
+                  border: Border.all(color: AppColors.border),
+                  borderRadius: .circular(4),
                 ),
-                child: SizedBox.square(
-                  dimension: 52,
+                child: SizedBox(
+                  width: 48,
+                  height: 56,
                   child: Center(
-                    child:
-                        leading ??
-                        const Icon(
-                          Icons.description_outlined,
-                          color: AppColors.text,
-                        ),
+                    child: SvgPicture.asset(
+                      AppAssets.icons.documentText,
+                      width: 26,
+                      height: 26,
+                    ),
                   ),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
                       title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: AppTypography.primaryText.copyWith(
+                      style: AppTypography.action.copyWith(
+                        fontSize: 15,
                         color: AppColors.text,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 3),
                     Text(
                       details,
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
-                      style: AppTypography.compactBody.copyWith(
+                      style: AppTypography.caption.copyWith(
                         color: AppColors.secondaryText,
                       ),
                     ),
                   ],
                 ),
               ),
-              if (action != null) ...<Widget>[
-                const SizedBox(width: 8),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    minWidth: 44,
-                    minHeight: 44,
-                  ),
-                  child: Center(child: action),
-                ),
-              ],
+              const SizedBox(width: 8),
+              const AppTextButton.underlined(label: "Open"),
             ],
           ),
         ),

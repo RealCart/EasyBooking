@@ -49,35 +49,33 @@ final class AppBottomNavigation extends StatelessWidget {
               }).length ==
               1,
     );
-    return Material(
-      color: AppColors.background,
-      child: DecoratedBox(
-        decoration: const BoxDecoration(
-          border: Border(top: BorderSide(color: AppColors.border)),
-        ),
-        child: SafeArea(
-          top: false,
-          minimum: const EdgeInsets.only(bottom: AppSpacing.xSmall),
-          child: SizedBox(
-            height: 66,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: List<Widget>.generate(items.length, (int index) {
-                final AppBottomNavigationItem item = items[index];
-                if (item.isAddAction) {
-                  return Expanded(
-                    child: _AddNavigationItem(item: item, onPressed: onAdd),
-                  );
-                }
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: AppColors.background,
+        border: Border(top: BorderSide(color: AppColors.border)),
+      ),
+      child: SafeArea(
+        top: false,
+        minimum: const EdgeInsets.only(bottom: AppSpacing.xSmall),
+        child: SizedBox(
+          height: 66,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: List<Widget>.generate(items.length, (int index) {
+              final AppBottomNavigationItem item = items[index];
+              if (item.isAddAction) {
                 return Expanded(
-                  child: _DestinationNavigationItem(
-                    item: item,
-                    isSelected: index == selectedIndex,
-                    onPressed: () => onDestinationSelected(index),
-                  ),
+                  child: _AddNavigationItem(item: item, onPressed: onAdd),
                 );
-              }),
-            ),
+              }
+              return Expanded(
+                child: _DestinationNavigationItem(
+                  item: item,
+                  isSelected: index == selectedIndex,
+                  onPressed: () => onDestinationSelected(index),
+                ),
+              );
+            }),
           ),
         ),
       ),
@@ -117,7 +115,7 @@ final class _DestinationNavigationItem extends StatelessWidget {
                 height: AppSizes.iconNavigation,
                 colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: AppSpacing.xSmall),
               Text(
                 item.label,
                 maxLines: 1,
@@ -125,7 +123,7 @@ final class _DestinationNavigationItem extends StatelessWidget {
                 style: AppTypography.caption.copyWith(
                   color: color,
                   fontSize: 10,
-                  height: 1.2,
+                  height: 1.4,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                 ),
               ),
@@ -151,24 +149,21 @@ final class _AddNavigationItem extends StatelessWidget {
       child: InkWell(
         onTap: onPressed,
         child: Center(
-          child: Tooltip(
-            message: item.label,
-            child: SizedBox.square(
-              dimension: AppSizes.touchTarget,
-              child: Material(
-                color: AppColors.text,
-                borderRadius: const BorderRadius.all(
-                  Radius.circular(AppRadii.field),
-                ),
-                child: Center(
-                  child: SvgPicture.asset(
-                    item.iconPath,
-                    width: AppSizes.iconNavigation,
-                    height: AppSizes.iconNavigation,
-                    colorFilter: const ColorFilter.mode(
-                      AppColors.background,
-                      BlendMode.srcIn,
-                    ),
+          child: SizedBox.square(
+            dimension: AppSizes.touchTarget,
+            child: Material(
+              color: AppColors.text,
+              borderRadius: const BorderRadius.all(
+                Radius.circular(AppRadii.field),
+              ),
+              child: Center(
+                child: SvgPicture.asset(
+                  item.iconPath,
+                  width: AppSizes.iconNavigation,
+                  height: AppSizes.iconNavigation,
+                  colorFilter: const ColorFilter.mode(
+                    AppColors.background,
+                    BlendMode.srcIn,
                   ),
                 ),
               ),

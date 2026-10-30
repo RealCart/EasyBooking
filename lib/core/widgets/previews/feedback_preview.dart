@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/widget_previews.dart';
 
-import 'package:easy_booking/core/widgets/actions/app_button.dart';
+import 'package:easy_booking/app/theme/app_colors.dart';
+import 'package:easy_booking/core/widgets/actions/app_primary_button.dart';
+import 'package:easy_booking/core/widgets/actions/app_secondary_button.dart';
 import 'package:easy_booking/core/widgets/feedback/app_callout.dart';
 import 'package:easy_booking/core/widgets/feedback/app_confirmation_dialog.dart';
 import 'package:easy_booking/core/widgets/feedback/app_conflict_card.dart';
@@ -12,6 +14,13 @@ import 'package:easy_booking/core/widgets/feedback/app_skeleton.dart';
 import 'package:easy_booking/core/widgets/feedback/app_snackbar.dart';
 import 'package:easy_booking/core/widgets/previews/app_preview_gallery.dart';
 
+@Preview(
+  name: 'Feedback & status · narrow, large text',
+  group: 'EasyBooking Core Widgets',
+  size: Size(320, 900),
+  textScaleFactor: 1.5,
+  wrapper: appWidgetPreviewWrapper,
+)
 @Preview(
   name: 'Feedback & status',
   group: 'EasyBooking Core Widgets',
@@ -31,7 +40,7 @@ class _FeedbackPreviewGallery extends StatelessWidget {
           'Tap actions to exercise messages, resolution controls, snackbars, '
           'and confirmation dialogs.',
       children: <Widget>[
-        AppPreviewSection(
+        const AppPreviewSection(
           title: 'Callout family',
           description: 'Success, information, warning, and error tones.',
           child: Column(
@@ -40,36 +49,24 @@ class _FeedbackPreviewGallery extends StatelessWidget {
                 title: 'Синхронизация завершена',
                 message: 'Все календари обновлены в 09:38.',
                 tone: AppFeedbackTone.success,
-                actionLabel: 'Открыть',
-                onAction: () => showPreviewMessage(
-                  context,
-                  'Opened the synchronization summary',
-                ),
               ),
-              const SizedBox(height: 12),
-              const AppCallout(
+              SizedBox(height: 12),
+              AppCallout(
                 title: 'Данные распознаны',
                 message: 'Сверьте имя и номер с удостоверением.',
                 tone: AppFeedbackTone.info,
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               AppCallout(
                 title: 'Ждём подпись гостя',
                 message: 'Ссылка отправлена Данияру в SMS.',
                 tone: AppFeedbackTone.warning,
-                actionLabel: 'Напомнить',
-                onAction: () => showPreviewMessage(
-                  context,
-                  'Signature reminder sent',
-                ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               AppCallout(
                 title: 'Не удалось обновить Airbnb',
                 message: 'Проверьте ссылку iCal и повторите.',
                 tone: AppFeedbackTone.error,
-                actionLabel: 'Повторить',
-                onAction: () => showPreviewMessage(context, 'Retry started'),
               ),
             ],
           ),
@@ -83,18 +80,40 @@ class _FeedbackPreviewGallery extends StatelessWidget {
             onAction: () => showPreviewMessage(context, 'Filters cleared'),
           ),
         ),
-        const AppPreviewSection(
+        AppPreviewSection(
           title: 'Loading skeleton',
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              AppSkeleton(height: 18, width: 180),
-              SizedBox(height: 10),
-              AppSkeleton(height: 14),
-              SizedBox(height: 8),
-              AppSkeleton(height: 14, width: 240),
-              SizedBox(height: 16),
-              AppSkeleton(height: 96),
+              for (int index = 0; index < 3; index++) ...<Widget>[
+                const Row(
+                  children: <Widget>[
+                    AppSkeleton(
+                      height: 72,
+                      width: 72,
+                      borderRadius: 12,
+                      color: AppColors.skeletonImage,
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          AppSkeleton(
+                            height: 12,
+                            width: 176,
+                            color: AppColors.skeletonLine,
+                          ),
+                          SizedBox(height: 8),
+                          AppSkeleton(height: 10, width: 220),
+                          SizedBox(height: 8),
+                          AppSkeleton(height: 10, width: 108),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                if (index != 2) const SizedBox(height: 12),
+              ],
             ],
           ),
         ),
@@ -107,16 +126,19 @@ class _FeedbackPreviewGallery extends StatelessWidget {
                 title: 'Черновик создан',
                 subtitle: 'Сегодня, 09:12',
                 status: AppSignatureStepStatus.draft,
+                statusLabel: 'Черновик',
               ),
               AppSignatureStep(
                 title: 'Отправлен гостю',
                 subtitle: 'Сегодня, 09:18',
                 status: AppSignatureStepStatus.sent,
+                statusLabel: 'Отправлен',
               ),
               AppSignatureStep(
                 title: 'Подписан',
                 subtitle: 'Сегодня, 09:31',
                 status: AppSignatureStepStatus.signed,
+                statusLabel: 'Подписан',
               ),
             ],
           ),
@@ -141,19 +163,16 @@ class _FeedbackPreviewGallery extends StatelessWidget {
         AppPreviewSection(
           title: 'Snackbar',
           description: 'Tap to display the production snackbar component.',
-          child: AppButton(
+          child: AppPrimaryButton(
             label: 'Показать snackbar',
-            isExpanded: true,
             onPressed: () => _showSnackbar(context),
           ),
         ),
         AppPreviewSection(
           title: 'Confirmation dialog',
           description: 'Tap to open and test both dialog actions.',
-          child: AppButton(
+          child: AppSecondaryButton(
             label: 'Открыть диалог',
-            isExpanded: true,
-            variant: AppButtonVariant.secondary,
             onPressed: () => _showConfirmationDialog(context),
           ),
         ),

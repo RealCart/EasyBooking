@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'package:easy_booking/app/theme/app_colors.dart';
-import 'package:easy_booking/app/theme/app_radii.dart';
-import 'package:easy_booking/app/theme/app_sizes.dart';
 import 'package:easy_booking/app/theme/app_spacing.dart';
 import 'package:easy_booking/app/theme/app_typography.dart';
 
@@ -13,11 +11,13 @@ final class AppSignatureStep {
     required this.title,
     required this.subtitle,
     required this.status,
+    this.statusLabel,
   });
 
   final String title;
   final String subtitle;
   final AppSignatureStepStatus status;
+  final String? statusLabel;
 }
 
 final class AppSignatureProgress extends StatelessWidget {
@@ -32,25 +32,17 @@ final class AppSignatureProgress extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        border: Border.all(color: AppColors.border),
-        borderRadius: const BorderRadius.all(
-          Radius.circular(AppRadii.card),
+    return Semantics(
+      label: documentTitle,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          border: Border(top: BorderSide(color: AppColors.border)),
         ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.large),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Text(documentTitle, style: AppTypography.primaryText),
-            const SizedBox(height: AppSpacing.large),
-            for (int index = 0; index < steps.length; index++)
-              _SignatureStepRow(
-                step: steps[index],
-                isLast: index == steps.length - 1,
-              ),
+            for (final AppSignatureStep step in steps)
+              _SignatureStepRow(step: step),
           ],
         ),
       ),
@@ -59,70 +51,73 @@ final class AppSignatureProgress extends StatelessWidget {
 }
 
 final class _SignatureStepRow extends StatelessWidget {
-  const _SignatureStepRow({required this.step, required this.isLast});
+  const _SignatureStepRow({required this.step});
 
   final AppSignatureStep step;
-  final bool isLast;
 
   @override
   Widget build(BuildContext context) {
     final Color statusColor = switch (step.status) {
-      AppSignatureStepStatus.draft => AppColors.secondaryText,
-      AppSignatureStepStatus.sent => AppColors.info,
+      AppSignatureStepStatus.draft => AppColors.info,
+      AppSignatureStepStatus.sent => AppColors.warning,
       AppSignatureStepStatus.signed => AppColors.success,
     };
-    final IconData statusIcon = switch (step.status) {
-      AppSignatureStepStatus.draft => Icons.edit_outlined,
-      AppSignatureStepStatus.sent => Icons.send_outlined,
-      AppSignatureStepStatus.signed => Icons.check,
-    };
+    final String statusLabel = step.statusLabel ?? step.status.name;
 
-    return Semantics(
-      label: '${step.title}. ${step.subtitle}. ${step.status.name}',
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          SizedBox(
-            width: AppSizes.touchTarget,
-            child: Column(
-              children: <Widget>[
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: statusColor,
-                    shape: BoxShape.circle,
-                  ),
-                  child: SizedBox.square(
-                    dimension: AppSizes.iconNavigation,
-                    child: Icon(
-                      statusIcon,
-                      color: AppColors.background,
-                      size: AppSizes.iconInline,
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: AppColors.border)),
+      ),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 72),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.small),
+          child: Row(
+            children: <Widget>[
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: statusColor,
+                  shape: BoxShape.circle,
+                ),
+                child: const SizedBox.square(dimension: 10),
+              ),
+              const SizedBox(width: AppSpacing.medium),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Text(
+                      step.title,
+                      style: AppTypography.action.copyWith(
+                        color: AppColors.black,
+                      ),
                     ),
+                    Text(
+                      step.subtitle,
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.secondaryText,
+                        height: 18 / 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: AppSpacing.medium),
+              Flexible(
+                child: Text(
+                  statusLabel,
+                  textAlign: TextAlign.end,
+                  style: AppTypography.caption.copyWith(
+                    color: statusColor,
+                    fontWeight: FontWeight.w600,
+                    height: 18 / 12,
                   ),
                 ),
-                if (!isLast)
-                  Container(
-                    width: 1,
-                    height: AppSpacing.xxLarge,
-                    color: AppColors.border,
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(width: AppSpacing.small),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.large),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(step.title, style: AppTypography.action),
-                  Text(step.subtitle, style: AppTypography.caption),
-                ],
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

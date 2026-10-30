@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:easy_booking/app/constants/assets/app_assets.dart';
 import 'package:easy_booking/app/theme/app_colors.dart';
 
 enum AppFeedbackTone { success, info, warning, error }
@@ -19,10 +20,10 @@ extension AppFeedbackToneColors on AppFeedbackTone {
     AppFeedbackTone.error => AppColors.errorSurface,
   };
 
-  IconData get icon => switch (this) {
-    AppFeedbackTone.success => Icons.check_circle_outline,
-    AppFeedbackTone.info => Icons.info_outline,
-    AppFeedbackTone.warning => Icons.warning_amber_rounded,
-    AppFeedbackTone.error => Icons.error_outline,
+  String get iconPath => switch (this) {
+    AppFeedbackTone.success => AppAssets.icons.statusSuccess,
+    AppFeedbackTone.info => AppAssets.icons.statusInfo,
+    AppFeedbackTone.warning => AppAssets.icons.statusWarning,
+    AppFeedbackTone.error => AppAssets.icons.statusError,
   };
 }

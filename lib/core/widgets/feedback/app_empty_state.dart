@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
-import 'package:easy_booking/app/theme/app_sizes.dart';
+import 'package:easy_booking/app/constants/assets/app_assets.dart';
+import 'package:easy_booking/app/theme/app_colors.dart';
+import 'package:easy_booking/app/theme/app_radii.dart';
 import 'package:easy_booking/app/theme/app_spacing.dart';
 import 'package:easy_booking/app/theme/app_typography.dart';
 
@@ -22,34 +25,58 @@ final class AppEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.all(Radius.circular(AppRadii.media)),
+      ),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: AppSizes.contentMaxWidth),
+        constraints: const BoxConstraints(minHeight: 188),
         child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.xLarge),
+          padding: const EdgeInsets.all(AppSpacing.large),
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              icon ??
-                  const Icon(
-                    Icons.search_off_rounded,
-                    size: AppSpacing.xxxLarge,
-                  ),
-              const SizedBox(height: AppSpacing.large),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: AppTypography.sectionTitle,
+              SizedBox.square(
+                dimension: 28,
+                child: icon ?? SvgPicture.asset(AppAssets.icons.searchLarge),
               ),
               const SizedBox(height: AppSpacing.small),
               Text(
-                message,
+                title,
                 textAlign: TextAlign.center,
-                style: AppTypography.body,
+                style: AppTypography.bodyLarge.copyWith(
+                  color: AppColors.black,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.small),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 260),
+                child: Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: AppTypography.compactBody.copyWith(
+                    color: AppColors.secondaryText,
+                  ),
+                ),
               ),
               if (actionLabel != null) ...<Widget>[
-                const SizedBox(height: AppSpacing.large),
-                TextButton(onPressed: onAction, child: Text(actionLabel!)),
+                const SizedBox(height: AppSpacing.small),
+                TextButton(
+                  onPressed: onAction,
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.black,
+                    overlayColor: Colors.transparent,
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(44, 44),
+                    textStyle: AppTypography.action.copyWith(
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                  child: Text(actionLabel!),
+                ),
               ],
             ],
           ),

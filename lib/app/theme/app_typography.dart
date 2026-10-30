@@ -24,6 +24,7 @@ abstract final class AppTypography {
     fontSize: 18,
     height: 24 / 18,
     fontWeight: FontWeight.w600,
+    letterSpacing: 0,
   );
 
   static const TextStyle primaryText = TextStyle(
@@ -31,6 +32,7 @@ abstract final class AppTypography {
     fontSize: 16,
     height: 24 / 16,
     fontWeight: FontWeight.w500,
+    letterSpacing: 0,
   );
 
   static const TextStyle bodyLarge = TextStyle(
@@ -38,6 +40,7 @@ abstract final class AppTypography {
     fontSize: 16,
     height: 24 / 16,
     fontWeight: FontWeight.w400,
+    letterSpacing: 0,
   );
 
   static const TextStyle body = TextStyle(
@@ -45,6 +48,7 @@ abstract final class AppTypography {
     fontSize: 14,
     height: 20 / 14,
     fontWeight: FontWeight.w400,
+    letterSpacing: 0,
   );
 
   static const TextStyle compactBody = TextStyle(
@@ -52,6 +56,7 @@ abstract final class AppTypography {
     fontSize: 13,
     height: 20 / 13,
     fontWeight: FontWeight.w400,
+    letterSpacing: 0,
   );
 
   static const TextStyle caption = TextStyle(
@@ -59,6 +64,15 @@ abstract final class AppTypography {
     fontSize: 12,
     height: 20 / 12,
     fontWeight: FontWeight.w400,
+    letterSpacing: 0,
+  );
+
+  static const TextStyle textAccent = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 12,
+    height: 20 / 12,
+    fontWeight: FontWeight.w500,
+    letterSpacing: 0,
   );
 
   static const TextStyle action = TextStyle(
@@ -66,6 +80,7 @@ abstract final class AppTypography {
     fontSize: 14,
     height: 20 / 14,
     fontWeight: FontWeight.w600,
+    letterSpacing: 0,
   );
 
   static const TextTheme textTheme = TextTheme(
@@ -84,6 +99,7 @@ abstract final class AppTypography {
       fontSize: 13,
       height: 20 / 13,
       fontWeight: FontWeight.w500,
+      letterSpacing: 0,
     ),
     labelSmall: caption,
   );

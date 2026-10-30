@@ -13,11 +13,18 @@ abstract final class AppColors {
   static const Color onAccent = Color(0xFFFFFFFF);
 
   static const Color success = Color(0xFF18794E);
-  static const Color successSurface = Color(0xFFE9F6EF);
+  static const Color successSurface = Color(0xFFEAF7F0);
   static const Color warning = Color(0xFF9A5B13);
-  static const Color warningSurface = Color(0xFFFFF4DE);
+  static const Color warningSurface = Color(0xFFFFF4E5);
   static const Color error = Color(0xFFC13515);
-  static const Color errorSurface = Color(0xFFFFEDE8);
+  static const Color errorSurface = Color(0xFFFFF0EC);
   static const Color info = Color(0xFF306A9B);
-  static const Color infoSurface = Color(0xFFEAF4FB);
+  static const Color infoSurface = Color(0xFFEDF6FF);
+
+  static const Color black = Color(0xFF000000);
+  static const Color white = Color(0xFFFFFFFF);
+
+  static const Color skeletonImage = Color(0xFFE9E9E9);
+  static const Color skeletonLine = Color(0xFFE5E5E5);
+  static const Color skeletonLight = Color(0xFFEFEFEF);
 }

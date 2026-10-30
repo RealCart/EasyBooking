@@ -1,131 +1,119 @@
+import 'package:easy_booking/app/constants/assets/app_assets.dart';
+import 'package:easy_booking/core/widgets/actions/app_icon_button.dart';
 import 'package:flutter/material.dart';
 
 import 'package:easy_booking/app/theme/app_colors.dart';
+import 'package:easy_booking/app/theme/app_radii.dart';
 import 'package:easy_booking/app/theme/app_typography.dart';
 
 class AppPropertyRow extends StatelessWidget {
   const AppPropertyRow({
     required this.title,
+    required this.imageUrl,
     required this.subtitle,
-    super.key,
-    this.price,
-    this.unitLabel,
-    this.status,
-    this.image,
-    this.action,
+    required this.price,
+    required this.unitLabel,
+    required this.status,
     this.onTap,
     this.showDivider = true,
+    super.key,
   });
 
   final String title;
+  final String imageUrl;
   final String subtitle;
-  final String? price;
-  final String? unitLabel;
-  final String? status;
-  final Widget? image;
-  final Widget? action;
+  final String price;
+  final String unitLabel;
+  final String status;
   final VoidCallback? onTap;
   final bool showDivider;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.background,
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 80),
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            border: showDivider
-                ? const Border(bottom: BorderSide(color: AppColors.border))
-                : null,
-          ),
-          child: Row(
-            children: <Widget>[
-              if (image != null) ...<Widget>[
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: SizedBox.square(dimension: 56, child: image),
-                ),
-                const SizedBox(width: 12),
-              ],
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.primaryText.copyWith(
-                        color: AppColors.text,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.compactBody.copyWith(
-                        color: AppColors.secondaryText,
-                      ),
-                    ),
-                    if (status != null) ...<Widget>[
-                      const SizedBox(height: 4),
-                      Text(
-                        status!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTypography.caption.copyWith(
-                          color: AppColors.success,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ],
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          border: showDivider
+              ? const Border(bottom: BorderSide(color: AppColors.border))
+              : null,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(AppRadii.media),
+              child: SizedBox.square(
+                dimension: 92,
+                child: Image.asset(
+                  AppAssets.images.propertyLivingRoomBlue,
+                  fit: BoxFit.cover,
                 ),
               ),
-              if (price != null) ...<Widget>[
-                const SizedBox(width: 12),
-                Flexible(
-                  child: Text.rich(
-                    TextSpan(
-                      children: <InlineSpan>[
-                        TextSpan(
-                          text: price,
-                          style: AppTypography.action.copyWith(
-                            color: AppColors.text,
-                          ),
-                        ),
-                        if (unitLabel != null)
-                          TextSpan(
-                            text: '\n${unitLabel!}',
-                            style: AppTypography.caption.copyWith(
-                              color: AppColors.secondaryText,
-                            ),
-                          ),
-                      ],
-                    ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.end,
+                    style: AppTypography.action.copyWith(
+                      fontSize: 15,
+                      color: AppColors.text,
+                    ),
                   ),
-                ),
-              ],
-              if (action != null) ...<Widget>[
-                const SizedBox(width: 4),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    minWidth: 44,
-                    minHeight: 44,
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.secondaryText,
+                    ),
                   ),
-                  child: Center(child: action),
+                  const SizedBox(height: 2),
+                  Text(
+                    status,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.secondaryText,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text.rich(
+                    TextSpan(
+                      children: <InlineSpan>[
+                        TextSpan(text: price),
+                        TextSpan(text: ' / $unitLabel'),
+                      ],
+                    ),
+                    style: AppTypography.compactBody.copyWith(
+                      color: AppColors.text,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            ConstrainedBox(
+              constraints: const BoxConstraints(
+                minWidth: 44,
+                minHeight: 44,
+              ),
+              child: Center(
+                child: AppSavedIconButton(
+                  isSaved: false,
+                  onPressed: () {},
                 ),
-              ],
-            ],
-          ),
+              ),
+            ),
+          ],
         ),
       ),
     );

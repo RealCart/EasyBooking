@@ -1,96 +1,106 @@
+import 'package:easy_booking/core/widgets/actions/app_text_button.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
+import 'package:easy_booking/app/constants/assets/app_assets.dart';
 import 'package:easy_booking/app/theme/app_colors.dart';
+import 'package:easy_booking/app/theme/app_radii.dart';
+import 'package:easy_booking/app/theme/app_spacing.dart';
 import 'package:easy_booking/app/theme/app_typography.dart';
 
 class AppFileRow extends StatelessWidget {
   const AppFileRow({
     required this.fileName,
     required this.details,
-    super.key,
-    this.leading,
-    this.action,
     this.onTap,
-    this.showDivider = true,
+    this.onReplcae,
+    super.key,
   });
 
   final String fileName;
-  final String details;
-  final Widget? leading;
-  final Widget? action;
+  final String? details;
   final VoidCallback? onTap;
-  final bool showDivider;
+  final VoidCallback? onReplcae;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.background,
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 76),
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            border: showDivider
-                ? const Border(bottom: BorderSide(color: AppColors.border))
-                : null,
+    final Widget fileDetails = Row(
+      children: <Widget>[
+        DecoratedBox(
+          decoration: const BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.all(Radius.circular(AppRadii.field)),
           ),
-          child: Row(
+          child: SizedBox(
+            width: 48,
+            height: 56,
+            child: Center(
+              child: IconTheme(
+                data: const IconThemeData(color: AppColors.text, size: 26),
+                child: SvgPicture.asset(
+                  AppAssets.icons.documentTextSmall,
+                  width: 26,
+                  height: 26,
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: AppSpacing.medium),
+        Expanded(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: AppColors.errorSurface,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: SizedBox.square(
-                  dimension: 48,
-                  child: Center(
-                    child:
-                        leading ??
-                        const Icon(
-                          Icons.picture_as_pdf_outlined,
-                          color: AppColors.error,
-                        ),
-                  ),
+              Text(
+                fileName,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.primaryText.copyWith(
+                  fontSize: 15,
+                  height: 20 / 15,
+                  color: AppColors.text,
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      fileName,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.primaryText.copyWith(
-                        color: AppColors.text,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      details,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.compactBody.copyWith(
-                        color: AppColors.secondaryText,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (action != null) ...<Widget>[
-                const SizedBox(width: 8),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    minWidth: 44,
-                    minHeight: 44,
+              if (details case final String details) ...<Widget>[
+                const SizedBox(height: AppSpacing.xSmall),
+                Text(
+                  details,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.secondaryText,
                   ),
-                  child: Center(child: action),
                 ),
               ],
             ],
           ),
+        ),
+      ],
+    );
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.large),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppRadii.media),
+          border: .all(color: AppColors.border),
+        ),
+        child: LayoutBuilder(
+          builder: (BuildContext context, BoxConstraints constraints) {
+            return Row(
+              children: <Widget>[
+                Expanded(child: fileDetails),
+                const SizedBox(width: AppSpacing.small),
+                AppTextButton.underlined(
+                  label: "Replace",
+                  onPressed: onReplcae,
+                  labelColor: AppColors.text,
+                ),
+              ],
+            );
+          },
         ),
       ),
     );

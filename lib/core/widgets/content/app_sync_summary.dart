@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
+import 'package:easy_booking/app/constants/assets/app_assets.dart';
 import 'package:easy_booking/app/theme/app_colors.dart';
+import 'package:easy_booking/app/theme/app_radii.dart';
 import 'package:easy_booking/app/theme/app_typography.dart';
 
 class AppSyncSummary extends StatelessWidget {
@@ -13,7 +16,6 @@ class AppSyncSummary extends StatelessWidget {
     this.onTap,
     this.isSuccessful = true,
   });
-
   final String title;
   final String subtitle;
   final Widget? leading;
@@ -23,62 +25,39 @@ class AppSyncSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color foregroundColor = isSuccessful
-        ? AppColors.success
-        : AppColors.warning;
-    final Color backgroundColor = isSuccessful
-        ? AppColors.successSurface
-        : AppColors.warningSurface;
-    final BorderRadius borderRadius = BorderRadius.circular(16);
-
-    return Material(
-      color: backgroundColor,
-      borderRadius: borderRadius,
-      child: InkWell(
-        borderRadius: borderRadius,
-        onTap: onTap,
+    final BorderRadius radius = BorderRadius.circular(AppRadii.media);
+    return GestureDetector(
+      onTap: onTap,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: isSuccessful ? AppColors.surface : AppColors.warningSurface,
+          borderRadius: radius,
+        ),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
             children: <Widget>[
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: AppColors.background,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: SizedBox.square(
-                  dimension: 44,
-                  child: Center(
-                    child:
-                        leading ??
-                        Icon(
-                          isSuccessful
-                              ? Icons.sync_rounded
-                              : Icons.sync_problem_rounded,
-                          color: foregroundColor,
-                        ),
-                  ),
-                ),
+              SizedBox.square(
+                dimension: 18,
+                child: leading ?? SvgPicture.asset(AppAssets.icons.refresh),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
                       title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.primaryText.copyWith(
+                      style: AppTypography.compactBody.copyWith(
                         color: AppColors.text,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.compactBody.copyWith(
+                      style: AppTypography.caption.copyWith(
                         color: AppColors.secondaryText,
                       ),
                     ),

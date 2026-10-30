@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'package:easy_booking/app/theme/app_colors.dart';
-import 'package:easy_booking/app/theme/app_radii.dart';
-import 'package:easy_booking/app/theme/app_sizes.dart';
 import 'package:easy_booking/app/theme/app_spacing.dart';
-import 'package:easy_booking/app/theme/app_typography.dart';
+import 'package:easy_booking/core/widgets/actions/app_choice_chip.dart';
 
 final class AppScopeFilter extends StatelessWidget {
   const AppScopeFilter({
@@ -36,42 +33,10 @@ final class AppScopeFilter extends StatelessWidget {
             padding: EdgeInsetsDirectional.only(
               end: index == labels.length - 1 ? 0 : AppSpacing.small,
             ),
-            child: Semantics(
-              button: true,
-              selected: isSelected,
-              child: Material(
-                color: isSelected ? AppColors.text : AppColors.surface,
-                borderRadius: const BorderRadius.all(
-                  Radius.circular(AppRadii.pill),
-                ),
-                child: InkWell(
-                  borderRadius: const BorderRadius.all(
-                    Radius.circular(AppRadii.pill),
-                  ),
-                  onTap: () => onSelected(index),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      minHeight: AppSizes.touchTarget,
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.large,
-                        vertical: AppSpacing.small,
-                      ),
-                      child: Center(
-                        child: Text(
-                          labels[index],
-                          style: AppTypography.action.copyWith(
-                            color: isSelected
-                                ? AppColors.background
-                                : AppColors.text,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+            child: AppChoiceChip(
+              label: labels[index],
+              isSelected: isSelected,
+              onSelected: (bool _) => onSelected(index),
             ),
           );
         }),
