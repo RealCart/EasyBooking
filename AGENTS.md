@@ -1,5 +1,22 @@
 # Multi-Agent Orchestration
 
+## Available Subagents
+
+- paper-designer — creates missing screens/components in Paper, writes docs/specs/
+- flutter-logic — domain, data, BLoC/Cubit, DI
+- flutter-ui — screens, widgets, routes, BLoC wiring
+- flutter-test — tests only, never edits lib/
+- flutter-reviewer — read-only review and final verification
+
+## Feature Pipeline
+
+1. If the needed UI does not exist in Paper → paper-designer, then show the
+   design to the user for approval.
+2. flutter-logic defines the BLoC/Cubit contract first.
+3. flutter-logic and flutter-ui in parallel (UI consumes the contract).
+4. flutter-test.
+5. flutter-reviewer; fix CHANGES REQUIRED items, then re-review.
+
 ## Main Agent Role
 
 Act as the primary orchestrator for this Flutter project.
@@ -25,10 +42,8 @@ You are responsible for:
 
 ## Project Rules
 
-Before writing or modifying Dart/Flutter code, recursively
-discover and read all applicable Markdown rules from:
-
-`.agents/rules/`
+Before writing or modifying Dart/Flutter code, read the applicable rules in
+`.claude/rules/`. Treat them as mandatory project conventions.
 
 Treat these rules as mandatory project conventions.
 
