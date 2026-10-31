@@ -26,16 +26,19 @@ class _FormsPreview extends StatefulWidget {
 }
 
 class _FormsPreviewState extends State<_FormsPreview> {
-  final TextEditingController _searchController = TextEditingController(
-    text: 'Esentai',
-  );
-  final TextEditingController _phoneController = TextEditingController(
-    text: '+7 700 123 45 67',
-  );
-  final TextEditingController _moneyController = TextEditingController(
-    text: '42 500',
-  );
-  String _country = 'Kazakhstan (+7)';
+  late final TextEditingController _searchController;
+  late final TextEditingController _phoneController;
+  late final TextEditingController _moneyController;
+  late String _country;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController(text: 'Esentai');
+    _phoneController = TextEditingController(text: '+7 700 123 45 67');
+    _moneyController = TextEditingController(text: '42 500');
+    _country = 'Kazakhstan (+7)';
+  }
 
   @override
   void dispose() {

@@ -7,7 +7,7 @@ import 'package:easy_booking/core/utils/either/either.dart';
 import 'package:easy_booking/core/utils/error/failure.dart';
 import 'package:easy_booking/core/utils/usecase/usecase.dart';
 import 'package:easy_booking/features/auth/domain/entity/account_fields.dart';
-import 'package:easy_booking/features/auth/domain/entity/city_entity.dart';
+import 'package:easy_booking/features/auth/domain/entity/create_account_params_entity.dart';
 import 'package:easy_booking/features/auth/domain/usecases/create_account_usecase.dart';
 import 'package:easy_booking/features/auth/domain/usecases/sign_out_usecase.dart';
 
@@ -18,11 +18,7 @@ final class AccountSetupBloc
     extends Bloc<AccountSetupEvent, AccountSetupState> {
   AccountSetupBloc({required this._createAccount, required this._signOut})
     : super(const AccountSetupState()) {
-    on<AccountFirstNameChanged>(_onFirstNameChanged);
-    on<AccountLastNameChanged>(_onLastNameChanged);
-    on<AccountEmailChanged>(_onEmailChanged);
-    on<AccountTeamNameChanged>(_onTeamNameChanged);
-    on<AccountCitySelected>(_onCitySelected);
+    on<AccountFieldEdited>(_onFieldEdited);
     on<AccountSetupSubmitted>(_onSubmitted, transformer: droppable());
     on<AccountSetupCancelled>(_onCancelled, transformer: droppable());
   }
@@ -41,77 +37,22 @@ final class AccountSetupBloc
   final CreateAccountUsecase _createAccount;
   final SignOutUsecase _signOut;
 
-  void _onFirstNameChanged(
-    AccountFirstNameChanged event,
+  /// Hides the server error of the edited field and the general failure.
+  void _onFieldEdited(
+    AccountFieldEdited event,
     Emitter<AccountSetupState> emit,
   ) {
-    _applyFieldChange(
-      emit,
-      field: AccountFields.firstName,
-      next: state.copyWith(firstName: event.firstName),
-    );
-  }
-
-  void _onLastNameChanged(
-    AccountLastNameChanged event,
-    Emitter<AccountSetupState> emit,
-  ) {
-    _applyFieldChange(
-      emit,
-      field: AccountFields.lastName,
-      next: state.copyWith(lastName: event.lastName),
-    );
-  }
-
-  void _onEmailChanged(
-    AccountEmailChanged event,
-    Emitter<AccountSetupState> emit,
-  ) {
-    _applyFieldChange(
-      emit,
-      field: AccountFields.email,
-      next: state.copyWith(email: event.email),
-    );
-  }
-
-  void _onTeamNameChanged(
-    AccountTeamNameChanged event,
-    Emitter<AccountSetupState> emit,
-  ) {
-    _applyFieldChange(
-      emit,
-      field: AccountFields.teamName,
-      next: state.copyWith(teamName: event.teamName),
-    );
-  }
-
-  void _onCitySelected(
-    AccountCitySelected event,
-    Emitter<AccountSetupState> emit,
-  ) {
-    _applyFieldChange(
-      emit,
-      field: AccountFields.city,
-      next: state.copyWith(city: event.city),
-    );
-  }
-
-  /// Emits [next] without [field]'s error and without the general failure.
-  void _applyFieldChange(
-    Emitter<AccountSetupState> emit, {
-    required String field,
-    required AccountSetupState next,
-  }) {
-    if (next == state) {
+    final bool hasFieldError = state.fieldErrors.containsKey(event.field);
+    if (!hasFieldError && state.failure == null && !state.status.isFailure) {
       return;
     }
-    final Map<String, String> fieldErrors = state.fieldErrors.containsKey(field)
+    final Map<String, String> fieldErrors = hasFieldError
         ? Map<String, String>.unmodifiable(
-            Map<String, String>.of(state.fieldErrors)..remove(field),
+            Map<String, String>.of(state.fieldErrors)..remove(event.field),
           )
         : state.fieldErrors;
     emit(
-      next.copyWith(
+      state.copyWith(
         status: state.status.isFailure ? RequestStatus.initial : null,
         resetFailure: true,
         fieldErrors: fieldErrors,
@@ -135,15 +76,7 @@ final class AccountSetupBloc
       ),
     );
 
-    final Either<Failure, void> result = await _createAccount(
-      CreateAccountParams(
-        firstName: state.firstName,
-        lastName: state.lastName,
-        email: state.email,
-        teamName: state.teamName,
-        city: state.city,
-      ),
-    );
+    final Either<Failure, void> result = await _createAccount(event.params);
     if (emit.isDone) {
       return;
     }

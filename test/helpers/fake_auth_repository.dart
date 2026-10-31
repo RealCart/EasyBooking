@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:easy_booking/core/utils/either/either.dart';
 import 'package:easy_booking/core/utils/error/failure.dart';
+import 'package:easy_booking/features/auth/domain/entity/create_account_params_entity.dart';
 import 'package:easy_booking/features/auth/domain/entity/otp_challenge_entity.dart';
 import 'package:easy_booking/features/auth/domain/repository/auth_repository.dart';
-import 'package:easy_booking/features/auth/domain/usecases/create_account_usecase.dart';
 
 const Either<Failure, void> voidSuccess = Right<Failure, void>(null);
 
@@ -40,8 +40,8 @@ final class FakeAuthRepository implements AuthRepository {
   final List<String> sentPhones = <String>[];
   final List<({String phone, String code})> verifyCalls =
       <({String phone, String code})>[];
-  final List<CreateAccountParams> createAccountCalls =
-      <CreateAccountParams>[];
+  final List<CreateAccountParamsEntity> createAccountCalls =
+      <CreateAccountParamsEntity>[];
   int signOutCount = 0;
 
   /// The success answer [sendCode] gives for [phone] by default.
@@ -75,7 +75,9 @@ final class FakeAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<Either<Failure, void>> createAccount(CreateAccountParams params) {
+  Future<Either<Failure, void>> createAccount(
+    CreateAccountParamsEntity params,
+  ) {
     createAccountCalls.add(params);
     return _answer(
       hold: holdCreateAccount,
@@ -87,7 +89,11 @@ final class FakeAuthRepository implements AuthRepository {
   @override
   Future<Either<Failure, void>> signOut() {
     signOutCount++;
-    return _answer(hold: holdSignOut, held: heldSignOuts, result: signOutResult);
+    return _answer(
+      hold: holdSignOut,
+      held: heldSignOuts,
+      result: signOutResult,
+    );
   }
 
   static Future<T> _answer<T>({

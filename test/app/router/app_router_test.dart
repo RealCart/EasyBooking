@@ -10,6 +10,7 @@ import 'package:easy_booking/features/auth/domain/entity/kazakhstan_cities.dart'
 import 'package:easy_booking/features/auth/presentation/screens/account_setup_screen.dart';
 import 'package:easy_booking/features/auth/presentation/screens/login_screen.dart';
 import 'package:easy_booking/features/auth/presentation/screens/verify_code_screen.dart';
+import 'package:easy_booking/features/home/presentation/screens/home_screen.dart';
 
 import '../../helpers/router_harness.dart';
 
@@ -49,12 +50,16 @@ final class _RouteCase {
     this.pathParameters = const <String, String>{},
     this.keepsNavigation = false,
     this.canNavigateSignedIn = true,
+    this.screen = RoutePlaceholderScreen,
   });
 
-  final AppRoute route;
+  final AppRoutes route;
   final String location;
   final Map<String, String> pathParameters;
   final bool keepsNavigation;
+
+  /// The screen type the route opens.
+  final Type screen;
 
   /// Auth routes redirect away from a signed-in user who finished setup.
   final bool canNavigateSignedIn;
@@ -72,7 +77,12 @@ const List<_RouteCase> _routeCases = <_RouteCase>[
     '/account-setup',
     canNavigateSignedIn: false,
   ),
-  _RouteCase(AppRoutes.today, '/today', keepsNavigation: true),
+  _RouteCase(
+    AppRoutes.today,
+    '/today',
+    keepsNavigation: true,
+    screen: HomeScreen,
+  ),
   _RouteCase(AppRoutes.calendar, '/calendar', keepsNavigation: true),
   _RouteCase(
     AppRoutes.occupancy,
@@ -771,7 +781,7 @@ void main() {
           reason: routeCase.route.name,
         );
         expect(
-          find.byType(RoutePlaceholderScreen),
+          find.byType(routeCase.screen),
           findsOneWidget,
           reason: routeCase.route.name,
         );

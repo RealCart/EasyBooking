@@ -10,11 +10,14 @@ import 'package:easy_booking/core/utils/validators.dart';
 /// SMS code input drawn as one box per digit.
 ///
 /// A single invisible [TextField] covers the boxes and receives the input,
-/// so SMS autofill (`oneTimeCode`) and paste work as in a normal field.
+/// so SMS autofill (`oneTimeCode`) and paste work as in a normal field. The
+/// owner of [controller] and [focusNode] (the screen) disposes them.
 final class OtpCodeField extends StatefulWidget {
   const OtpCodeField({
-    required this.code,
+    required this.controller,
+    required this.focusNode,
     required this.onChanged,
+    this.validator,
     this.errorText,
     this.semanticLabel = 'Код из SMS',
     this.autofocus = false,
@@ -22,10 +25,13 @@ final class OtpCodeField extends StatefulWidget {
     super.key,
   });
 
-  /// Digits entered so far. A change from outside (for example, clearing
-  /// the code after a failure) replaces the text in the field.
-  final String code;
+  final TextEditingController controller;
+  final FocusNode focusNode;
   final ValueChanged<String> onChanged;
+
+  /// Validates the code inside an enclosing `Form`. Its message takes
+  /// precedence over [errorText].
+  final FormFieldValidator<String>? validator;
   final String? errorText;
   final String semanticLabel;
   final bool autofocus;
@@ -40,33 +46,24 @@ final class OtpCodeField extends StatefulWidget {
 final class _OtpCodeFieldState extends State<OtpCodeField> {
   static const int _length = Validators.otpLength;
 
-  late final TextEditingController _controller = TextEditingController(
-    text: widget.code,
-  );
-  final FocusNode _focusNode = FocusNode();
-
   @override
   void initState() {
     super.initState();
-    _focusNode.addListener(_handleFocusChanged);
+    widget.focusNode.addListener(_handleFocusChanged);
   }
 
   @override
   void didUpdateWidget(covariant OtpCodeField oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.code != oldWidget.code && widget.code != _controller.text) {
-      _controller.value = TextEditingValue(
-        text: widget.code,
-        selection: TextSelection.collapsed(offset: widget.code.length),
-      );
+    if (oldWidget.focusNode != widget.focusNode) {
+      oldWidget.focusNode.removeListener(_handleFocusChanged);
+      widget.focusNode.addListener(_handleFocusChanged);
     }
   }
 
   @override
   void dispose() {
-    _focusNode.removeListener(_handleFocusChanged);
-    _focusNode.dispose();
-    _controller.dispose();
+    widget.focusNode.removeListener(_handleFocusChanged);
     super.dispose();
   }
 
@@ -74,7 +71,17 @@ final class _OtpCodeFieldState extends State<OtpCodeField> {
 
   @override
   Widget build(BuildContext context) {
-    final String? errorText = widget.errorText;
+    return FormField<String>(
+      initialValue: widget.controller.text,
+      validator: widget.validator == null
+          ? null
+          : (_) => widget.validator?.call(widget.controller.text),
+      builder: _buildField,
+    );
+  }
+
+  Widget _buildField(FormFieldState<String> field) {
+    final String? errorText = field.errorText ?? widget.errorText;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -84,7 +91,7 @@ final class _OtpCodeFieldState extends State<OtpCodeField> {
           children: <Widget>[
             ExcludeSemantics(
               child: ValueListenableBuilder<TextEditingValue>(
-                valueListenable: _controller,
+                valueListenable: widget.controller,
                 builder: (_, TextEditingValue value, _) {
                   final String code = value.text;
                   return Row(
@@ -95,7 +102,7 @@ final class _OtpCodeFieldState extends State<OtpCodeField> {
                           child: _OtpBox(
                             digit: index < code.length ? code[index] : '',
                             isActive:
-                                _focusNode.hasFocus && index == code.length,
+                                widget.focusNode.hasFocus && index == code.length,
                             hasError: errorText != null,
                           ),
                         ),
@@ -116,8 +123,8 @@ final class _OtpCodeFieldState extends State<OtpCodeField> {
                     selectionColor: Colors.transparent,
                   ),
                   child: TextField(
-                    controller: _controller,
-                    focusNode: _focusNode,
+                    controller: widget.controller,
+                    focusNode: widget.focusNode,
                     autofocus: widget.autofocus,
                     readOnly: widget.readOnly,
                     keyboardType: TextInputType.number,
@@ -132,7 +139,10 @@ final class _OtpCodeFieldState extends State<OtpCodeField> {
                     showCursor: false,
                     style: const TextStyle(color: Colors.transparent),
                     decoration: const InputDecoration.collapsed(hintText: null),
-                    onChanged: widget.onChanged,
+                    onChanged: (String code) {
+                      field.didChange(code);
+                      widget.onChanged(code);
+                    },
                   ),
                 ),
               ),

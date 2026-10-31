@@ -7,12 +7,12 @@ import 'package:easy_booking/core/utils/either/either.dart';
 import 'package:easy_booking/core/utils/error/failure.dart';
 import 'package:easy_booking/core/presentation/widgets/forms/app_text_field.dart';
 import 'package:easy_booking/features/auth/domain/entity/account_fields.dart';
+import 'package:easy_booking/features/auth/domain/entity/create_account_params_entity.dart';
 import 'package:easy_booking/features/auth/domain/entity/kazakhstan_cities.dart';
 import 'package:easy_booking/features/auth/domain/usecases/create_account_usecase.dart';
 import 'package:easy_booking/features/auth/domain/usecases/sign_out_usecase.dart';
 import 'package:easy_booking/features/auth/presentation/bloc/account_setup_bloc/account_setup_bloc.dart';
 import 'package:easy_booking/features/auth/presentation/screens/account_setup_screen.dart';
-import 'package:easy_booking/features/auth/presentation/widgets/city_picker_sheet.dart';
 
 import '../../../../helpers/fake_auth_repository.dart';
 
@@ -23,12 +23,8 @@ final class _Harness {
   final FakeAuthRepository repository;
   final AccountSetupBloc bloc;
 
-  /// Pumps the screen with a BLoC owned by its provider. [events] are added
-  /// before the first build, as if the user had already typed them.
-  static Future<_Harness> pump(
-    WidgetTester tester, {
-    List<AccountSetupEvent> events = const <AccountSetupEvent>[],
-  }) async {
+  /// Pumps the screen with a BLoC owned by its provider.
+  static Future<_Harness> pump(WidgetTester tester) async {
     tester.view
       ..physicalSize = const Size(430, 932)
       ..devicePixelRatio = 1;
@@ -39,8 +35,6 @@ final class _Harness {
       createAccount: CreateAccountUsecase(repository),
       signOut: SignOutUsecase(repository),
     );
-    events.forEach(bloc.add);
-    await tester.pump();
 
     await tester.pumpWidget(
       MaterialApp(
@@ -63,6 +57,32 @@ final class _Harness {
 
   Finder get submitButton => find.byType(FilledButton);
 
+  Future<void> type(String label, String text) async {
+    await tester.enterText(field(label), text);
+    await tester.pump();
+  }
+
+  Future<void> pickCity(String name) async {
+    await tester.tap(find.text('Город и часовой пояс'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(name));
+    await tester.pumpAndSettle();
+  }
+
+  /// Fills every field through the UI; each value can be overridden.
+  Future<void> fill({
+    String firstName = 'Айгерим',
+    String lastName = 'Садыкова',
+    String email = 'aigerim@example.kz',
+    String teamName = 'Esentai Stay',
+  }) async {
+    await type('Имя', firstName);
+    await type('Фамилия', lastName);
+    await type('Email для документов', email);
+    await type('Название команды', teamName);
+    await pickCity('Алматы');
+  }
+
   Future<void> submit() async {
     await tester.ensureVisible(submitButton);
     await tester.tap(submitButton);
@@ -70,14 +90,6 @@ final class _Harness {
     await tester.pump();
   }
 }
-
-const List<AccountSetupEvent> _validForm = <AccountSetupEvent>[
-  AccountFirstNameChanged('Айгерим'),
-  AccountLastNameChanged('Садыкова'),
-  AccountEmailChanged('aigerim@example.kz'),
-  AccountTeamNameChanged('Esentai Stay'),
-  AccountCitySelected(KazakhstanCities.almaty),
-];
 
 void main() {
   testWidgets('shows the account form', (WidgetTester tester) async {
@@ -116,28 +128,32 @@ void main() {
     );
   });
 
-  testWidgets('typing dispatches the field events', (
+  testWidgets('typing keeps the values in the form, not the BLoC', (
     WidgetTester tester,
   ) async {
     final _Harness harness = await _Harness.pump(tester);
 
-    await tester.enterText(harness.field('Имя'), 'Айгерим');
-    await tester.enterText(harness.field('Фамилия'), 'Садыкова');
-    await tester.enterText(
-      harness.field('Email для документов'),
-      'aigerim@example.kz',
+    await harness.fill();
+
+    expect(harness.bloc.state, const AccountSetupState());
+    expect(
+      tester.widget<TextField>(harness.field('Имя')).controller!.text,
+      'Айгерим',
     );
-    await tester.enterText(harness.field('Название команды'), 'Esentai Stay');
+  });
+
+  testWidgets('the keyboard action moves to the next field', (
+    WidgetTester tester,
+  ) async {
+    final _Harness harness = await _Harness.pump(tester);
+    await tester.showKeyboard(harness.field('Имя'));
+
+    await tester.testTextInput.receiveAction(TextInputAction.next);
     await tester.pump();
 
     expect(
-      harness.bloc.state,
-      const AccountSetupState(
-        firstName: 'Айгерим',
-        lastName: 'Садыкова',
-        email: 'aigerim@example.kz',
-        teamName: 'Esentai Stay',
-      ),
+      tester.widget<TextField>(harness.field('Фамилия')).focusNode!.hasFocus,
+      isTrue,
     );
   });
 
@@ -150,34 +166,35 @@ void main() {
 
     expect(find.text('Заполните поле'), findsNWidgets(5));
     expect(harness.repository.createAccountCalls, isEmpty);
+    expect(harness.bloc.state, const AccountSetupState());
 
-    await tester.enterText(harness.field('Имя'), 'Айгерим');
-    await tester.pump();
+    await harness.type('Имя', 'Айгерим');
 
     expect(find.text('Заполните поле'), findsNWidgets(4));
+
+    await harness.pickCity('Алматы');
+
+    expect(find.text('Заполните поле'), findsNWidgets(3));
   });
 
   testWidgets('an invalid email shows its own message', (
     WidgetTester tester,
   ) async {
-    final _Harness harness = await _Harness.pump(
-      tester,
-      events: <AccountSetupEvent>[
-        ..._validForm,
-        const AccountEmailChanged('aigerim@'),
-      ],
-    );
+    final _Harness harness = await _Harness.pump(tester);
+    await harness.fill(email: 'aigerim@');
 
     await harness.submit();
 
     expect(find.text('Проверьте адрес почты'), findsOneWidget);
     expect(find.text('Заполните поле'), findsNothing);
+    expect(harness.repository.createAccountCalls, isEmpty);
   });
 
   testWidgets('a server field error shows under its field', (
     WidgetTester tester,
   ) async {
-    final _Harness harness = await _Harness.pump(tester, events: _validForm);
+    final _Harness harness = await _Harness.pump(tester);
+    await harness.fill();
     harness.repository.createAccountResult = const Left<Failure, void>(
       ValidationFailure(
         fieldErrors: <String, String>{AccountFields.teamName: 'taken'},
@@ -188,12 +205,17 @@ void main() {
 
     expect(find.text('Проверьте поле'), findsOneWidget);
     expect(find.byType(SnackBar), findsNothing);
+
+    await harness.type('Название команды', 'Esentai Stay 2');
+
+    expect(find.text('Проверьте поле'), findsNothing);
   });
 
   testWidgets('a general failure shows a snackbar', (
     WidgetTester tester,
   ) async {
-    final _Harness harness = await _Harness.pump(tester, events: _validForm);
+    final _Harness harness = await _Harness.pump(tester);
+    await harness.fill();
     harness.repository.createAccountResult = const Left<Failure, void>(
       ServerFailure(statusCode: 500),
     );
@@ -209,19 +231,14 @@ void main() {
   testWidgets('a valid form creates the account with trimmed values', (
     WidgetTester tester,
   ) async {
-    final _Harness harness = await _Harness.pump(
-      tester,
-      events: <AccountSetupEvent>[
-        ..._validForm,
-        const AccountFirstNameChanged('  Айгерим  '),
-      ],
-    );
+    final _Harness harness = await _Harness.pump(tester);
+    await harness.fill(firstName: '  Айгерим  ');
 
     await harness.submit();
 
     expect(
       harness.repository.createAccountCalls.single,
-      const CreateAccountParams(
+      const CreateAccountParamsEntity(
         firstName: 'Айгерим',
         lastName: 'Садыкова',
         email: 'aigerim@example.kz',
@@ -239,36 +256,31 @@ void main() {
     await tester.tap(find.text('Город и часовой пояс'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(CityPickerSheet), findsOneWidget);
+    expect(find.byType(BottomSheet), findsOneWidget);
     expect(find.text('Часовой пояс подставим по городу'), findsOneWidget);
 
     await tester.tap(find.text('Алматы'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(CityPickerSheet), findsNothing);
+    expect(find.byType(BottomSheet), findsNothing);
     expect(find.text('Алматы · UTC+5'), findsOneWidget);
     expect(find.text('Выберите город'), findsNothing);
-    expect(harness.bloc.state.city, KazakhstanCities.almaty);
+    expect(harness.bloc.state, const AccountSetupState());
   });
 
   testWidgets('closing the picker keeps the previous city', (
     WidgetTester tester,
   ) async {
-    final _Harness harness = await _Harness.pump(
-      tester,
-      events: const <AccountSetupEvent>[
-        AccountCitySelected(KazakhstanCities.semey),
-      ],
-    );
-    expect(find.text('Семей · UTC+5'), findsOneWidget);
+    final _Harness harness = await _Harness.pump(tester);
+    await harness.pickCity('Алматы');
+    expect(find.text('Алматы · UTC+5'), findsOneWidget);
 
     await tester.tap(find.text('Город и часовой пояс'));
     await tester.pumpAndSettle();
     await tester.tap(find.bySemanticsLabel('Закрыть'));
     await tester.pumpAndSettle();
 
-    expect(harness.bloc.state.city, KazakhstanCities.semey);
-    expect(find.text('Семей · UTC+5'), findsOneWidget);
+    expect(find.text('Алматы · UTC+5'), findsOneWidget);
   });
 
   testWidgets('the header back button cancels setup', (
@@ -313,7 +325,8 @@ void main() {
   testWidgets('everything is locked while the account is being created', (
     WidgetTester tester,
   ) async {
-    final _Harness harness = await _Harness.pump(tester, events: _validForm);
+    final _Harness harness = await _Harness.pump(tester);
+    await harness.fill();
     harness.repository.holdCreateAccount = true;
 
     await harness.submit();
@@ -339,7 +352,7 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
 
     expect(harness.repository.signOutCount, 0);
-    expect(find.byType(CityPickerSheet), findsNothing);
+    expect(find.byType(BottomSheet), findsNothing);
     expect(harness.repository.createAccountCalls, hasLength(1));
 
     harness.repository.heldCreateAccounts.single.complete(

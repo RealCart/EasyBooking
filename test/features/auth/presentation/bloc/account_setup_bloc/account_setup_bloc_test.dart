@@ -7,6 +7,7 @@ import 'package:easy_booking/core/utils/either/either.dart';
 import 'package:easy_booking/core/utils/error/failure.dart';
 import 'package:easy_booking/features/auth/domain/entity/account_fields.dart';
 import 'package:easy_booking/features/auth/domain/entity/auth_error_codes.dart';
+import 'package:easy_booking/features/auth/domain/entity/create_account_params_entity.dart';
 import 'package:easy_booking/features/auth/domain/entity/kazakhstan_cities.dart';
 import 'package:easy_booking/features/auth/domain/usecases/create_account_usecase.dart';
 import 'package:easy_booking/features/auth/domain/usecases/sign_out_usecase.dart';
@@ -14,7 +15,7 @@ import 'package:easy_booking/features/auth/presentation/bloc/account_setup_bloc/
 
 import '../../../../../helpers/fake_auth_repository.dart';
 
-const AccountSetupState _filled = AccountSetupState(
+const CreateAccountParamsEntity _params = CreateAccountParamsEntity(
   firstName: ' Айгерим ',
   lastName: 'Садыкова',
   email: 'aigerim@example.kz',
@@ -23,6 +24,14 @@ const AccountSetupState _filled = AccountSetupState(
 );
 
 const Failure _serverFailure = ServerFailure(statusCode: 500);
+
+const ValidationFailure _serverFieldErrors = ValidationFailure(
+  fieldErrors: <String, String>{
+    AccountFields.email: 'taken',
+    AccountFields.teamName: 'too long',
+    'timeZone': 'unknown',
+  },
+);
 
 void main() {
   late FakeAuthRepository repository;
@@ -44,102 +53,55 @@ void main() {
     });
   });
 
-  Future<void> fill() async {
-    bloc
-      ..add(AccountFirstNameChanged(_filled.firstName))
-      ..add(AccountLastNameChanged(_filled.lastName))
-      ..add(AccountEmailChanged(_filled.email))
-      ..add(AccountTeamNameChanged(_filled.teamName))
-      ..add(const AccountCitySelected(KazakhstanCities.almaty));
-    await pumpEventQueue();
-    states.clear();
-  }
-
-  Future<void> submitWith(Either<Failure, void> result) async {
+  Future<void> submitWith(
+    Either<Failure, void> result, {
+    CreateAccountParamsEntity params = _params,
+  }) async {
     repository.createAccountResult = result;
-    bloc.add(const AccountSetupSubmitted());
+    bloc.add(AccountSetupSubmitted(params));
     await pumpEventQueue();
   }
 
-  test('starts with an empty form', () {
+  test('starts idle without errors', () {
     expect(bloc.state, const AccountSetupState());
     expect(bloc.state.fieldErrors, isEmpty);
   });
 
-  group('field changes', () {
-    test('each event updates its field', () async {
-      await fill();
+  group('AccountFieldEdited', () {
+    test('clears only that field error and the failure', () async {
+      await submitWith(const Left<Failure, void>(_serverFieldErrors));
+      expect(bloc.state.fieldErrors, hasLength(3));
 
-      expect(bloc.state, _filled);
-    });
-
-    test('an unchanged value emits nothing', () async {
-      await fill();
-
-      bloc
-        ..add(AccountFirstNameChanged(_filled.firstName))
-        ..add(const AccountCitySelected(KazakhstanCities.almaty));
-      await pumpEventQueue();
-
-      expect(states, isEmpty);
-    });
-
-    test('a change clears only that field error and the failure', () async {
-      await submitWith(
-        const Left<Failure, void>(
-          ValidationFailure(
-            fieldErrors: <String, String>{
-              AccountFields.email: 'taken',
-              AccountFields.teamName: 'too long',
-              'timeZone': 'unknown',
-            },
-          ),
-        ),
-      );
-      // The form was empty, so local validation failed first.
-      expect(bloc.state.fieldErrors, hasLength(5));
-
-      bloc.add(const AccountEmailChanged('a@b.kz'));
+      bloc.add(const AccountFieldEdited(AccountFields.email));
       await pumpEventQueue();
 
       expect(bloc.state.fieldErrors, <String, String>{
-        AccountFields.firstName: AuthErrorCodes.required,
-        AccountFields.lastName: AuthErrorCodes.required,
-        AccountFields.teamName: AuthErrorCodes.required,
-        AccountFields.city: AuthErrorCodes.required,
+        AccountFields.teamName: 'too long',
+        'timeZone': 'unknown',
       });
       expect(bloc.state.status, RequestStatus.initial);
       expect(bloc.state.failure, isNull);
     });
 
-    test('selecting a city clears the city error', () async {
-      bloc.add(const AccountSetupSubmitted());
-      await pumpEventQueue();
-      expect(bloc.state.fieldErrors[AccountFields.city], isNotNull);
-
-      bloc.add(const AccountCitySelected(KazakhstanCities.karaganda));
-      await pumpEventQueue();
-
-      expect(bloc.state.city, KazakhstanCities.karaganda);
-      expect(bloc.state.fieldErrors, isNot(contains(AccountFields.city)));
-      expect(bloc.state.fieldErrors, hasLength(4));
-    });
-
-    test('a change after a general failure clears it', () async {
-      await fill();
+    test('an edit after a general failure clears it', () async {
       await submitWith(const Left<Failure, void>(_serverFailure));
 
-      bloc.add(const AccountTeamNameChanged('Stay'));
+      bloc.add(const AccountFieldEdited(AccountFields.teamName));
       await pumpEventQueue();
 
-      expect(states.last.failure, isNull);
-      expect(states.last.status, RequestStatus.initial);
+      expect(states.last, const AccountSetupState());
+    });
+
+    test('an edit without errors emits nothing', () async {
+      bloc.add(const AccountFieldEdited(AccountFields.firstName));
+      await pumpEventQueue();
+
+      expect(states, isEmpty);
     });
 
     test('published field errors cannot be modified', () async {
-      bloc.add(const AccountSetupSubmitted());
-      await pumpEventQueue();
-      bloc.add(const AccountFirstNameChanged('A'));
+      await submitWith(const Left<Failure, void>(_serverFieldErrors));
+      bloc.add(const AccountFieldEdited(AccountFields.email));
       await pumpEventQueue();
 
       expect(
@@ -151,17 +113,15 @@ void main() {
 
   group('AccountSetupSubmitted', () {
     test('emits loading, then success, with trimmed params', () async {
-      await fill();
-
       await submitWith(voidSuccess);
 
-      expect(states, <AccountSetupState>[
-        _filled.copyWith(status: RequestStatus.loading),
-        _filled.copyWith(status: RequestStatus.success),
+      expect(states, const <AccountSetupState>[
+        AccountSetupState(status: RequestStatus.loading),
+        AccountSetupState(status: RequestStatus.success),
       ]);
       expect(
         repository.createAccountCalls.single,
-        const CreateAccountParams(
+        const CreateAccountParamsEntity(
           firstName: 'Айгерим',
           lastName: 'Садыкова',
           email: 'aigerim@example.kz',
@@ -171,25 +131,27 @@ void main() {
       );
     });
 
-    test('local validation errors go to fieldErrors', () async {
-      bloc.add(const AccountEmailChanged('wrong'));
-      await pumpEventQueue();
-      states.clear();
-
-      bloc.add(const AccountSetupSubmitted());
-      await pumpEventQueue();
-
-      expect(states, <AccountSetupState>[
-        const AccountSetupState(email: 'wrong', status: RequestStatus.loading),
-        const AccountSetupState(
+    test('use-case validation errors go to fieldErrors', () async {
+      await submitWith(
+        voidSuccess,
+        params: const CreateAccountParamsEntity(
+          firstName: '',
+          lastName: '',
           email: 'wrong',
+          teamName: '',
+          city: KazakhstanCities.almaty,
+        ),
+      );
+
+      expect(states, const <AccountSetupState>[
+        AccountSetupState(status: RequestStatus.loading),
+        AccountSetupState(
           status: RequestStatus.failure,
           fieldErrors: <String, String>{
             AccountFields.firstName: AuthErrorCodes.required,
             AccountFields.lastName: AuthErrorCodes.required,
             AccountFields.email: AuthErrorCodes.invalidEmail,
             AccountFields.teamName: AuthErrorCodes.required,
-            AccountFields.city: AuthErrorCodes.required,
           },
         ),
       ]);
@@ -199,8 +161,6 @@ void main() {
     test(
       'server field errors on shown fields go only to fieldErrors',
       () async {
-        await fill();
-
         await submitWith(
           const Left<Failure, void>(
             ValidationFailure(
@@ -222,7 +182,6 @@ void main() {
     );
 
     test('field errors only on unknown keys also set failure', () async {
-      await fill();
       const ValidationFailure failure = ValidationFailure(
         fieldErrors: <String, String>{'timeZone': 'unknown'},
       );
@@ -235,14 +194,13 @@ void main() {
     });
 
     test('a ValidationFailure without field errors goes to failure', () async {
-      await fill();
       const ValidationFailure failure = ValidationFailure(code: 'bad_input');
 
       await submitWith(const Left<Failure, void>(failure));
 
       expect(
         states.last,
-        _filled.copyWith(
+        const AccountSetupState(
           status: RequestStatus.failure,
           failure: failure,
         ),
@@ -250,13 +208,11 @@ void main() {
     });
 
     test('any other failure goes to failure', () async {
-      await fill();
-
       await submitWith(const Left<Failure, void>(_serverFailure));
 
-      expect(states, <AccountSetupState>[
-        _filled.copyWith(status: RequestStatus.loading),
-        _filled.copyWith(
+      expect(states, const <AccountSetupState>[
+        AccountSetupState(status: RequestStatus.loading),
+        AccountSetupState(
           status: RequestStatus.failure,
           failure: _serverFailure,
         ),
@@ -264,27 +220,25 @@ void main() {
     });
 
     test('a new submit clears previous field errors and failure', () async {
-      await submitWith(voidSuccess);
-      expect(bloc.state.fieldErrors, isNotEmpty);
-      await fill();
+      await submitWith(const Left<Failure, void>(_serverFieldErrors));
       states.clear();
 
-      await submitWith(const Left<Failure, void>(_serverFailure));
       await submitWith(voidSuccess);
 
-      expect(states[2], _filled.copyWith(status: RequestStatus.loading));
-      expect(states.last, _filled.copyWith(status: RequestStatus.success));
+      expect(states, const <AccountSetupState>[
+        AccountSetupState(status: RequestStatus.loading),
+        AccountSetupState(status: RequestStatus.success),
+      ]);
     });
 
     test('a submit while loading is dropped', () async {
-      await fill();
       repository.holdCreateAccount = true;
 
       bloc
-        ..add(const AccountSetupSubmitted())
-        ..add(const AccountSetupSubmitted());
+        ..add(const AccountSetupSubmitted(_params))
+        ..add(const AccountSetupSubmitted(_params));
       await pumpEventQueue();
-      bloc.add(const AccountSetupSubmitted());
+      bloc.add(const AccountSetupSubmitted(_params));
       await pumpEventQueue();
 
       expect(repository.createAccountCalls, hasLength(1));
@@ -299,27 +253,25 @@ void main() {
     });
 
     test('a submit after success is ignored', () async {
-      await fill();
       await submitWith(voidSuccess);
 
-      bloc.add(const AccountSetupSubmitted());
+      bloc.add(const AccountSetupSubmitted(_params));
       await pumpEventQueue();
 
       expect(repository.createAccountCalls, hasLength(1));
     });
 
     test('closing while creating emits nothing more', () async {
-      await fill();
       repository.holdCreateAccount = true;
-      bloc.add(const AccountSetupSubmitted());
+      bloc.add(const AccountSetupSubmitted(_params));
       await pumpEventQueue();
 
       await bloc.close();
       repository.heldCreateAccounts.single.complete(voidSuccess);
       await pumpEventQueue();
 
-      expect(states, <AccountSetupState>[
-        _filled.copyWith(status: RequestStatus.loading),
+      expect(states, const <AccountSetupState>[
+        AccountSetupState(status: RequestStatus.loading),
       ]);
     });
   });
@@ -349,9 +301,8 @@ void main() {
     });
 
     test('is ignored while the account is being created', () async {
-      await fill();
       repository.holdCreateAccount = true;
-      bloc.add(const AccountSetupSubmitted());
+      bloc.add(const AccountSetupSubmitted(_params));
       await pumpEventQueue();
 
       bloc.add(const AccountSetupCancelled());
@@ -398,25 +349,25 @@ void main() {
   });
 
   group('AccountSetupState.copyWith', () {
-    test('reset flags win over supplied values', () {
+    test('the reset flag wins over a supplied failure', () {
       const AccountSetupState state = AccountSetupState(
-        city: KazakhstanCities.almaty,
         failure: _serverFailure,
       );
 
-      final AccountSetupState next = state.copyWith(
-        city: KazakhstanCities.astana,
-        resetCity: true,
-        failure: _serverFailure,
-        resetFailure: true,
+      expect(
+        state.copyWith(failure: _serverFailure, resetFailure: true).failure,
+        isNull,
       );
-
-      expect(next.city, isNull);
-      expect(next.failure, isNull);
     });
 
     test('keeps omitted fields', () {
-      expect(_filled.copyWith(), _filled);
+      const AccountSetupState state = AccountSetupState(
+        status: RequestStatus.failure,
+        failure: _serverFailure,
+        fieldErrors: <String, String>{AccountFields.email: 'taken'},
+      );
+
+      expect(state.copyWith(), state);
     });
   });
 }

@@ -63,7 +63,7 @@ final class AppSectionHeader extends StatelessWidget {
           ),
           if (actionLabel != null) ...<Widget>[
             const SizedBox(width: AppSpacing.medium),
-            AppTextButton.underlined(label: actionLabel),
+            AppTextButton.underlined(label: actionLabel, onPressed: onAction),
           ],
         ],
       ),

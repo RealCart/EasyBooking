@@ -7,53 +7,24 @@ sealed class AccountSetupEvent extends Equatable {
   List<Object?> get props => const <Object?>[];
 }
 
-final class AccountFirstNameChanged extends AccountSetupEvent {
-  const AccountFirstNameChanged(this.firstName);
+/// The user edited the form field [field] (an `AccountFields` key).
+final class AccountFieldEdited extends AccountSetupEvent {
+  const AccountFieldEdited(this.field);
 
-  final String firstName;
-
-  @override
-  List<Object?> get props => <Object?>[firstName];
-}
-
-final class AccountLastNameChanged extends AccountSetupEvent {
-  const AccountLastNameChanged(this.lastName);
-
-  final String lastName;
+  final String field;
 
   @override
-  List<Object?> get props => <Object?>[lastName];
+  List<Object?> get props => <Object?>[field];
 }
 
-final class AccountEmailChanged extends AccountSetupEvent {
-  const AccountEmailChanged(this.email);
-
-  final String email;
-
-  @override
-  List<Object?> get props => <Object?>[email];
-}
-
-final class AccountTeamNameChanged extends AccountSetupEvent {
-  const AccountTeamNameChanged(this.teamName);
-
-  final String teamName;
-
-  @override
-  List<Object?> get props => <Object?>[teamName];
-}
-
-final class AccountCitySelected extends AccountSetupEvent {
-  const AccountCitySelected(this.city);
-
-  final CityEntity city;
-
-  @override
-  List<Object?> get props => <Object?>[city];
-}
-
+/// The validated account form asked to create the account.
 final class AccountSetupSubmitted extends AccountSetupEvent {
-  const AccountSetupSubmitted();
+  const AccountSetupSubmitted(this.params);
+
+  final CreateAccountParamsEntity params;
+
+  @override
+  List<Object?> get props => <Object?>[params];
 }
 
 /// The user left account setup (back button); signs out.

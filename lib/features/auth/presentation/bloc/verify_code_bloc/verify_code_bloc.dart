@@ -7,9 +7,9 @@ import 'package:easy_booking/core/utils/bloc/event_transformers.dart';
 import 'package:easy_booking/core/utils/bloc/request_status.dart';
 import 'package:easy_booking/core/utils/either/either.dart';
 import 'package:easy_booking/core/utils/error/failure.dart';
-import 'package:easy_booking/core/utils/phone_number.dart';
-import 'package:easy_booking/core/utils/validators.dart';
 import 'package:easy_booking/features/auth/domain/entity/otp_challenge_entity.dart';
+import 'package:easy_booking/features/auth/domain/entity/send_code_params_entity.dart';
+import 'package:easy_booking/features/auth/domain/entity/verify_code_params_entity.dart';
 import 'package:easy_booking/features/auth/domain/usecases/send_code_usecase.dart';
 import 'package:easy_booking/features/auth/domain/usecases/verify_code_usecase.dart';
 
@@ -20,7 +20,7 @@ final class VerifyCodeBloc extends Bloc<VerifyCodeEvent, VerifyCodeState> {
   VerifyCodeBloc({required this._verifyCode, required this._sendCode})
     : super(const VerifyCodeState()) {
     on<VerifyCodeStarted>(_onStarted);
-    on<VerifyCodeChanged>(_onCodeChanged);
+    on<VerifyCodeEdited>(_onEdited);
     on<VerifyCodeSubmitted>(_onSubmitted, transformer: droppable());
     on<VerifyCodeResendRequested>(_onResendRequested, transformer: droppable());
     on<VerifyCodeTimerTicked>(_onTimerTicked);
@@ -39,33 +39,17 @@ final class VerifyCodeBloc extends Bloc<VerifyCodeEvent, VerifyCodeState> {
     _restartCountdown(resendAfter);
   }
 
-  void _onCodeChanged(VerifyCodeChanged event, Emitter<VerifyCodeState> emit) {
-    // A failure clears the code, so a digit typed during verify would be
-    // wiped and never sent.
-    if (state.verifyStatus.isLoading) {
-      return;
-    }
-    final String digits = PhoneNumber.digitsOnly(event.code);
-    final String code = digits.length > Validators.otpLength
-        ? digits.substring(0, Validators.otpLength)
-        : digits;
-    if (code == state.code) {
+  /// Typing after a failed check hides its error.
+  void _onEdited(VerifyCodeEdited event, Emitter<VerifyCodeState> emit) {
+    if (!state.verifyStatus.isFailure) {
       return;
     }
     emit(
       state.copyWith(
-        code: code,
-        verifyStatus: state.verifyStatus.isFailure
-            ? RequestStatus.initial
-            : null,
+        verifyStatus: RequestStatus.initial,
         resetVerifyFailure: true,
       ),
     );
-    if (code.length == Validators.otpLength &&
-        !state.verifyStatus.isLoading &&
-        !isClosed) {
-      add(const VerifyCodeSubmitted());
-    }
   }
 
   Future<void> _onSubmitted(
@@ -73,8 +57,8 @@ final class VerifyCodeBloc extends Bloc<VerifyCodeEvent, VerifyCodeState> {
     Emitter<VerifyCodeState> emit,
   ) async {
     // After success the router leaves the screen; never sign in twice.
-    // Verify and resend are mutually exclusive: resend success clears the
-    // code.
+    // Verify and resend are mutually exclusive: the screen clears the code
+    // after a successful resend.
     if (state.verifyStatus.isLoading ||
         state.verifyStatus.isSuccess ||
         state.resendStatus.isLoading) {
@@ -87,9 +71,7 @@ final class VerifyCodeBloc extends Bloc<VerifyCodeEvent, VerifyCodeState> {
       ),
     );
 
-    final Either<Failure, void> result = await _verifyCode(
-      VerifyCodeParams(phone: state.phone, code: state.code),
-    );
+    final Either<Failure, void> result = await _verifyCode(event.params);
     if (emit.isDone) {
       return;
     }
@@ -97,7 +79,6 @@ final class VerifyCodeBloc extends Bloc<VerifyCodeEvent, VerifyCodeState> {
       case Left<Failure, void>(value: final Failure failure):
         emit(
           state.copyWith(
-            code: '',
             verifyStatus: RequestStatus.failure,
             verifyFailure: failure,
           ),
@@ -122,7 +103,7 @@ final class VerifyCodeBloc extends Bloc<VerifyCodeEvent, VerifyCodeState> {
     );
 
     final Either<Failure, OtpChallengeEntity> result = await _sendCode(
-      state.phone,
+      SendCodeParamsEntity(phone: state.phone),
     );
     if (emit.isDone) {
       return;
@@ -141,7 +122,6 @@ final class VerifyCodeBloc extends Bloc<VerifyCodeEvent, VerifyCodeState> {
         final Duration resendAfter = _nonNegative(challenge.resendAfter);
         emit(
           state.copyWith(
-            code: '',
             verifyStatus: state.verifyStatus.isFailure
                 ? RequestStatus.initial
                 : null,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:easy_booking/app/theme/app_colors.dart';
@@ -11,6 +12,7 @@ import 'package:easy_booking/core/presentation/widgets/forms/app_search_field.da
 import 'package:easy_booking/core/presentation/widgets/forms/app_text_field.dart';
 import 'package:easy_booking/core/presentation/widgets/forms/app_upload_field.dart';
 import 'package:easy_booking/core/presentation/widgets/forms/app_value_field.dart';
+import 'package:easy_booking/core/utils/phone_input_formatter.dart';
 
 void main() {
   Future<void> pumpWidget(WidgetTester tester, Widget child) {
@@ -37,22 +39,18 @@ void main() {
       ),
     );
 
-    BoxDecoration fieldDecoration() => tester
-        .widgetList<Container>(
-          find.descendant(
-            of: find.byType(AppTextField),
-            matching: find.byType(Container),
-          ),
-        )
-        .map((Container container) => container.decoration)
-        .whereType<BoxDecoration>()
-        .firstWhere((BoxDecoration decoration) => decoration.border != null);
+    final Finder field = find.byType(InputDecorator);
 
-    expect((fieldDecoration().border! as Border).top.color, AppColors.border);
+    expect(
+      field,
+      paints..rrect(color: AppColors.border, strokeWidth: 1),
+    );
     focusNode.requestFocus();
-    await tester.pump();
-    expect((fieldDecoration().border! as Border).top.color, AppColors.text);
-    expect((fieldDecoration().border! as Border).top.width, 2);
+    await tester.pumpAndSettle();
+    expect(
+      field,
+      paints..rrect(color: AppColors.text, strokeWidth: 2),
+    );
 
     await pumpWidget(
       tester,
@@ -61,7 +59,11 @@ void main() {
         child: AppTextField(label: 'Name', errorText: 'Required'),
       ),
     );
-    expect((fieldDecoration().border! as Border).top.color, AppColors.error);
+    await tester.pumpAndSettle();
+    expect(
+      field,
+      paints..rrect(color: AppColors.error, strokeWidth: 1),
+    );
     expect(find.text('Required'), findsOneWidget);
   });
 
@@ -312,5 +314,319 @@ void main() {
 
     expect(primaryTaps, 1);
     expect(secondaryTaps, 1);
+  });
+
+  group('AppPhoneCountryFields options', () {
+    Finder countryBox(String value) {
+      return find
+          .ancestor(of: find.text(value), matching: find.byType(DecoratedBox))
+          .first;
+    }
+
+    double countryOpacity(WidgetTester tester, String value) {
+      return tester
+          .widget<Opacity>(
+            find
+                .ancestor(of: find.text(value), matching: find.byType(Opacity))
+                .first,
+          )
+          .opacity;
+    }
+
+    testWidgets('stacked puts the country above the phone at full width', (
+      WidgetTester tester,
+    ) async {
+      await pumpWidget(
+        tester,
+        const SizedBox(
+          width: 400,
+          child: AppPhoneCountryFields(
+            layout: AppPhoneCountryLayout.stacked,
+            countryValue: 'Казахстан (+7)',
+            onCountryPressed: null,
+          ),
+        ),
+      );
+
+      final Rect country = tester.getRect(countryBox('Казахстан (+7)'));
+      final Rect phone = tester.getRect(find.byType(AppTextField));
+      expect(country.width, 400);
+      expect(phone.width, 400);
+      expect(phone.top - country.bottom, 16);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('the adaptive default keeps both fields in one row', (
+      WidgetTester tester,
+    ) async {
+      await pumpWidget(
+        tester,
+        const SizedBox(
+          width: 400,
+          child: AppPhoneCountryFields(
+            countryValue: 'Казахстан (+7)',
+            onCountryPressed: null,
+          ),
+        ),
+      );
+
+      expect(
+        tester.getRect(countryBox('Казахстан (+7)')).top,
+        tester.getRect(find.byType(AppTextField)).top,
+      );
+    });
+
+    testWidgets('a read-only country is not tappable and not dimmed', (
+      WidgetTester tester,
+    ) async {
+      final SemanticsHandle handle = tester.ensureSemantics();
+      int countryTaps = 0;
+      await pumpWidget(
+        tester,
+        SizedBox(
+          width: 400,
+          child: AppPhoneCountryFields(
+            countryLabel: 'Страна / регион',
+            countryValue: 'Казахстан (+7)',
+            isCountryReadOnly: true,
+            onCountryPressed: () => countryTaps++,
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Казахстан (+7)'));
+      await tester.pump();
+
+      expect(countryTaps, 0);
+      expect(countryOpacity(tester, 'Казахстан (+7)'), 1);
+      expect(
+        tester.getSemantics(
+          find.bySemanticsLabel('Страна / регион, Казахстан (+7)'),
+        ),
+        isSemantics(
+          isReadOnly: true,
+          isButton: false,
+          hasTapAction: false,
+          hasEnabledState: true,
+          isEnabled: true,
+        ),
+      );
+      handle.dispose();
+    });
+
+    testWidgets('a read-only country is dimmed when disabled', (
+      WidgetTester tester,
+    ) async {
+      final SemanticsHandle handle = tester.ensureSemantics();
+      await pumpWidget(
+        tester,
+        const SizedBox(
+          width: 400,
+          child: AppPhoneCountryFields(
+            countryLabel: 'Страна / регион',
+            countryValue: 'Казахстан (+7)',
+            isCountryReadOnly: true,
+            onCountryPressed: null,
+            enabled: false,
+          ),
+        ),
+      );
+
+      expect(countryOpacity(tester, 'Казахстан (+7)'), 0.4);
+      expect(
+        tester.getSemantics(
+          find.bySemanticsLabel('Страна / регион, Казахстан (+7)'),
+        ),
+        isSemantics(
+          isReadOnly: true,
+          hasEnabledState: true,
+          isEnabled: false,
+        ),
+      );
+      expect(tester.widget<TextField>(find.byType(TextField)).enabled, isFalse);
+      handle.dispose();
+    });
+
+    testWidgets('phoneInputFormatters are applied to the phone input', (
+      WidgetTester tester,
+    ) async {
+      final TextEditingController controller = TextEditingController();
+      addTearDown(controller.dispose);
+      final List<String> changes = <String>[];
+      const List<TextInputFormatter> formatters = <TextInputFormatter>[
+        PhoneInputFormatter(),
+      ];
+      await pumpWidget(
+        tester,
+        SizedBox(
+          width: 400,
+          child: AppPhoneCountryFields(
+            countryValue: 'Казахстан (+7)',
+            onCountryPressed: null,
+            phoneController: controller,
+            phoneInputFormatters: formatters,
+            onPhoneChanged: changes.add,
+          ),
+        ),
+      );
+
+      await tester.enterText(find.byType(TextField), '7001234567');
+      await tester.pump();
+
+      expect(controller.text, '700 123 45 67');
+      expect(changes.last, '700 123 45 67');
+      expect(
+        tester.widget<AppTextField>(find.byType(AppTextField)).inputFormatters,
+        same(formatters),
+      );
+    });
+  });
+
+  testWidgets('AppTextField applies its inputFormatters', (
+    WidgetTester tester,
+  ) async {
+    String? value;
+    final List<TextInputFormatter> formatters = <TextInputFormatter>[
+      FilteringTextInputFormatter.digitsOnly,
+      LengthLimitingTextInputFormatter(4),
+    ];
+    await pumpWidget(
+      tester,
+      SizedBox(
+        width: 400,
+        child: AppTextField(
+          label: 'Код',
+          inputFormatters: formatters,
+          onChanged: (String input) => value = input,
+        ),
+      ),
+    );
+
+    await tester.enterText(find.byType(TextField), 'a1b2c3d4e5');
+    await tester.pump();
+
+    expect(value, '1234');
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).inputFormatters,
+      formatters,
+    );
+  });
+
+  testWidgets('AppFlowFooter applies messageStyle to its message', (
+    WidgetTester tester,
+  ) async {
+    const TextStyle style = TextStyle(fontSize: 12, color: AppColors.error);
+    await pumpWidget(
+      tester,
+      SizedBox(
+        width: 400,
+        child: AppFlowFooter(
+          message: 'Для владельцев',
+          messageStyle: style,
+          primaryLabel: 'Получить код',
+          onPrimaryPressed: () {},
+        ),
+      ),
+    );
+
+    expect(tester.widget<Text>(find.text('Для владельцев')).style, style);
+  });
+
+  testWidgets('AppFlowFooter keeps its default message style without one', (
+    WidgetTester tester,
+  ) async {
+    await pumpWidget(
+      tester,
+      SizedBox(
+        width: 400,
+        child: AppFlowFooter(
+          message: 'Для владельцев',
+          primaryLabel: 'Получить код',
+          onPrimaryPressed: () {},
+        ),
+      ),
+    );
+
+    final TextStyle? style = tester
+        .widget<Text>(find.text('Для владельцев'))
+        .style;
+    expect(style?.color, AppColors.secondaryText);
+    expect(style?.fontSize, isNot(12));
+  });
+
+  group('AppSearchField options', () {
+    Future<void> pumpSearch(
+      WidgetTester tester, {
+      String? clearSemanticLabel,
+    }) {
+      return pumpWidget(
+        tester,
+        SizedBox(
+          width: 400,
+          child: clearSemanticLabel == null
+              ? const AppSearchField(
+                  hint: 'Найти город',
+                  subtitle: 'Например, Шымкент',
+                )
+              : AppSearchField(
+                  hint: 'Найти город',
+                  subtitle: 'Например, Шымкент',
+                  clearSemanticLabel: clearSemanticLabel,
+                ),
+        ),
+      );
+    }
+
+    testWidgets('uses clearSemanticLabel for the clear button', (
+      WidgetTester tester,
+    ) async {
+      await pumpSearch(tester, clearSemanticLabel: 'Очистить поиск');
+
+      await tester.enterText(find.byType(TextField), 'алм');
+      await tester.pump();
+
+      expect(find.bySemanticsLabel('Очистить поиск'), findsOneWidget);
+      expect(find.bySemanticsLabel('Clear search'), findsNothing);
+
+      await tester.tap(find.bySemanticsLabel('Очистить поиск'));
+      await tester.pump();
+
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        isEmpty,
+      );
+    });
+
+    testWidgets('hides the subtitle while there is a query', (
+      WidgetTester tester,
+    ) async {
+      await pumpSearch(tester);
+      expect(find.text('Например, Шымкент'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), 'алм');
+      await tester.pump();
+      expect(find.text('Например, Шымкент'), findsNothing);
+
+      await tester.tap(find.bySemanticsLabel('Clear search'));
+      await tester.pump();
+      expect(find.text('Например, Шымкент'), findsOneWidget);
+    });
+
+    testWidgets('keeps a 66 px height when the clear button appears', (
+      WidgetTester tester,
+    ) async {
+      await pumpSearch(tester);
+      final double emptyHeight = tester
+          .getSize(find.byType(AppSearchField))
+          .height;
+
+      await tester.enterText(find.byType(TextField), 'алм');
+      await tester.pump();
+
+      expect(emptyHeight, 66);
+      expect(find.bySemanticsLabel('Clear search'), findsOneWidget);
+      expect(tester.getSize(find.byType(AppSearchField)).height, emptyHeight);
+      expect(tester.takeException(), isNull);
+    });
   });
 }

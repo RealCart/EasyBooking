@@ -21,19 +21,19 @@ final class VerifyCodeStarted extends VerifyCodeEvent {
   List<Object?> get props => <Object?>[phone, resendAfter];
 }
 
-/// The code input changed. Non-digits are dropped and the code is limited to
-/// `Validators.otpLength` digits; the last digit submits automatically.
-final class VerifyCodeChanged extends VerifyCodeEvent {
-  const VerifyCodeChanged(this.code);
-
-  final String code;
-
-  @override
-  List<Object?> get props => <Object?>[code];
+/// The user typed in the code field. Clears the error of a failed check.
+final class VerifyCodeEdited extends VerifyCodeEvent {
+  const VerifyCodeEdited();
 }
 
+/// The validated code form asked to check [params].
 final class VerifyCodeSubmitted extends VerifyCodeEvent {
-  const VerifyCodeSubmitted();
+  const VerifyCodeSubmitted(this.params);
+
+  final VerifyCodeParamsEntity params;
+
+  @override
+  List<Object?> get props => <Object?>[params];
 }
 
 final class VerifyCodeResendRequested extends VerifyCodeEvent {

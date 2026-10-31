@@ -7,12 +7,15 @@ import 'package:easy_booking/core/utils/either/either.dart';
 import 'package:easy_booking/core/utils/error/failure.dart';
 import 'package:easy_booking/features/auth/domain/entity/auth_error_codes.dart';
 import 'package:easy_booking/features/auth/domain/entity/otp_challenge_entity.dart';
+import 'package:easy_booking/features/auth/domain/entity/send_code_params_entity.dart';
 import 'package:easy_booking/features/auth/domain/usecases/send_code_usecase.dart';
 import 'package:easy_booking/features/auth/presentation/bloc/login_bloc/login_bloc.dart';
 
 import '../../../../../helpers/fake_auth_repository.dart';
 
-const String _national = '7001234567';
+const LoginSubmitted _submitted = LoginSubmitted(
+  SendCodeParamsEntity(phone: '+7 (700) 123-45-67'),
+);
 const OtpChallengeEntity _challenge = OtpChallengeEntity(
   phone: '+77001234567',
   resendAfter: Duration(seconds: 30),
@@ -40,113 +43,47 @@ void main() {
     });
   });
 
-  Future<void> typeValidPhone() async {
-    bloc.add(const LoginPhoneChanged(_national));
-    await pumpEventQueue();
-    states.clear();
-  }
-
-  test('starts empty with submit disabled', () {
+  test('starts idle', () {
     expect(bloc.state, const LoginState());
-    expect(bloc.state.canSubmit, isFalse);
-  });
-
-  group('LoginPhoneChanged', () {
-    test('keeps only the national digits of a formatted number', () async {
-      bloc.add(const LoginPhoneChanged('+7 (700) 123-45-67'));
-      await pumpEventQueue();
-
-      expect(states, <LoginState>[const LoginState(phone: _national)]);
-      expect(bloc.state.canSubmit, isTrue);
-    });
-
-    test('an incomplete number cannot be submitted', () async {
-      bloc.add(const LoginPhoneChanged('700 123'));
-      await pumpEventQueue();
-
-      expect(bloc.state.phone, '700123');
-      expect(bloc.state.canSubmit, isFalse);
-    });
-
-    test('the same digits emit nothing', () async {
-      await typeValidPhone();
-
-      bloc.add(const LoginPhoneChanged('700 123 45 67'));
-      await pumpEventQueue();
-
-      expect(states, isEmpty);
-    });
-
-    test('resets status, failure and challenge', () async {
-      await typeValidPhone();
-      repository.sendCodeResult = const Left<Failure, OtpChallengeEntity>(
-        _tooManyRequests,
-      );
-      bloc.add(const LoginSubmitted());
-      await pumpEventQueue();
-      expect(bloc.state.status, RequestStatus.failure);
-
-      bloc.add(const LoginPhoneChanged('7001234568'));
-      await pumpEventQueue();
-
-      expect(bloc.state, const LoginState(phone: '7001234568'));
-    });
-
-    test('after success a change clears the challenge', () async {
-      await typeValidPhone();
-      bloc.add(const LoginSubmitted());
-      await pumpEventQueue();
-      expect(bloc.state.challenge, _challenge);
-
-      bloc.add(const LoginPhoneChanged('700123456'));
-      await pumpEventQueue();
-
-      expect(bloc.state, const LoginState(phone: '700123456'));
-    });
   });
 
   group('LoginSubmitted', () {
-    test('emits loading, then success with the challenge', () async {
-      await typeValidPhone();
-
-      bloc.add(const LoginSubmitted());
+    test('sends the normalized phone of the params', () async {
+      bloc.add(_submitted);
       await pumpEventQueue();
 
-      expect(states, <LoginState>[
-        const LoginState(phone: _national, status: RequestStatus.loading),
-        const LoginState(
-          phone: _national,
-          status: RequestStatus.success,
-          challenge: _challenge,
-        ),
-      ]);
       expect(repository.sentPhones, <String>['+77001234567']);
     });
 
+    test('emits loading, then success with the challenge', () async {
+      bloc.add(_submitted);
+      await pumpEventQueue();
+
+      expect(states, <LoginState>[
+        const LoginState(status: RequestStatus.loading),
+        const LoginState(status: RequestStatus.success, challenge: _challenge),
+      ]);
+    });
+
     test('emits loading, then failure with the failure', () async {
-      await typeValidPhone();
       repository.sendCodeResult = const Left<Failure, OtpChallengeEntity>(
         _tooManyRequests,
       );
 
-      bloc.add(const LoginSubmitted());
+      bloc.add(_submitted);
       await pumpEventQueue();
 
       expect(states, <LoginState>[
-        const LoginState(phone: _national, status: RequestStatus.loading),
+        const LoginState(status: RequestStatus.loading),
         const LoginState(
-          phone: _national,
           status: RequestStatus.failure,
           failure: _tooManyRequests,
         ),
       ]);
     });
 
-    test('an incomplete number fails with invalid_phone locally', () async {
-      bloc.add(const LoginPhoneChanged('700'));
-      await pumpEventQueue();
-
-      bloc.add(const LoginSubmitted());
+    test('an invalid number fails with invalid_phone locally', () async {
+      bloc.add(const LoginSubmitted(SendCodeParamsEntity(phone: '700')));
       await pumpEventQueue();
 
       expect(
@@ -157,41 +94,34 @@ void main() {
     });
 
     test('a retry after failure clears the old failure', () async {
-      await typeValidPhone();
       repository.sendCodeResult = const Left<Failure, OtpChallengeEntity>(
         _tooManyRequests,
       );
-      bloc.add(const LoginSubmitted());
+      bloc.add(_submitted);
       await pumpEventQueue();
       repository.sendCodeResult = null;
       states.clear();
 
-      bloc.add(const LoginSubmitted());
+      bloc.add(_submitted);
       await pumpEventQueue();
 
-      expect(
-        states.first,
-        const LoginState(
-          phone: _national,
-          status: RequestStatus.loading,
-        ),
-      );
-      expect(states.last.status, RequestStatus.success);
+      expect(states, <LoginState>[
+        const LoginState(status: RequestStatus.loading),
+        const LoginState(status: RequestStatus.success, challenge: _challenge),
+      ]);
     });
 
     test('a second submit while loading is dropped', () async {
-      await typeValidPhone();
       repository.holdSendCode = true;
 
       bloc
-        ..add(const LoginSubmitted())
-        ..add(const LoginSubmitted());
+        ..add(_submitted)
+        ..add(_submitted);
       await pumpEventQueue();
-      bloc.add(const LoginSubmitted());
+      bloc.add(_submitted);
       await pumpEventQueue();
 
       expect(repository.sentPhones, hasLength(1));
-      expect(bloc.state.canSubmit, isFalse);
 
       repository.heldSendCodes.single.complete(
         const Right<Failure, OtpChallengeEntity>(_challenge),
@@ -205,41 +135,10 @@ void main() {
     });
 
     test(
-      'a phone change while loading is ignored and the result applies',
-      () async {
-        await typeValidPhone();
-        repository.holdSendCode = true;
-        bloc.add(const LoginSubmitted());
-        await pumpEventQueue();
-
-        bloc.add(const LoginPhoneChanged('7009999999'));
-        await pumpEventQueue();
-
-        expect(bloc.state.phone, _national);
-        expect(bloc.state.status, RequestStatus.loading);
-
-        repository.heldSendCodes.single.complete(
-          const Right<Failure, OtpChallengeEntity>(_challenge),
-        );
-        await pumpEventQueue();
-
-        expect(states, <LoginState>[
-          const LoginState(phone: _national, status: RequestStatus.loading),
-          const LoginState(
-            phone: _national,
-            status: RequestStatus.success,
-            challenge: _challenge,
-          ),
-        ]);
-      },
-    );
-
-    test(
       'closing while sending emits nothing more and throws nothing',
       () async {
-        await typeValidPhone();
         repository.holdSendCode = true;
-        bloc.add(const LoginSubmitted());
+        bloc.add(_submitted);
         await pumpEventQueue();
 
         await bloc.close();
@@ -249,9 +148,8 @@ void main() {
         await pumpEventQueue();
 
         expect(states, <LoginState>[
-          const LoginState(phone: _national, status: RequestStatus.loading),
+          const LoginState(status: RequestStatus.loading),
         ]);
-        expect(bloc.state.status, RequestStatus.loading);
       },
     );
   });
@@ -276,7 +174,6 @@ void main() {
 
     test('keeps omitted fields', () {
       const LoginState state = LoginState(
-        phone: _national,
         status: RequestStatus.failure,
         failure: _tooManyRequests,
       );

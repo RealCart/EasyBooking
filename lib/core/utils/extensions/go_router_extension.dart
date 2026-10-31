@@ -54,7 +54,11 @@ extension GoRouteExtension on GoRoute {
           : (context, state) {
               final Widget child = wrappedBuilder.call(context, state);
 
-              return pageBuilder.call(context, state, child);
+              return pageBuilder.call(
+                context,
+                state,
+                _buildChild(context, child),
+              );
             },
     );
   }

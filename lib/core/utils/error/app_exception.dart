@@ -1,5 +1,5 @@
 /// Exceptions thrown by data sources and converted to a `Failure` at the
-/// repository boundary by `runGuarded`.
+/// repository boundary by `mapExceptionToFailure`.
 sealed class AppException implements Exception {
   const AppException(this.message);
 

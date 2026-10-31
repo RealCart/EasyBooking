@@ -2,12 +2,14 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:meta/meta.dart';
 
 import 'package:easy_booking/app/router/app_router.dart';
+import 'package:easy_booking/core/utils/network/interceptors/error_interceptor.dart';
 import 'package:easy_booking/core/utils/logger/app_logger.dart';
 import 'package:easy_booking/core/utils/network/api_client.dart';
 import 'package:easy_booking/core/utils/network/api_config.dart';
-import 'package:easy_booking/core/utils/network/auth_interceptor.dart';
+import 'package:easy_booking/core/utils/network/interceptors/auth_interceptor.dart';
 import 'package:easy_booking/core/utils/network/dio_factory.dart';
 import 'package:easy_booking/core/utils/session/auth_session.dart';
 import 'package:easy_booking/core/utils/session/session_storage.dart';
@@ -20,37 +22,50 @@ import 'package:easy_booking/features/auth/domain/usecases/create_account_usecas
 import 'package:easy_booking/features/auth/domain/usecases/send_code_usecase.dart';
 import 'package:easy_booking/features/auth/domain/usecases/sign_out_usecase.dart';
 import 'package:easy_booking/features/auth/domain/usecases/verify_code_usecase.dart';
-import 'package:easy_booking/features/auth/presentation/bloc/account_setup_bloc/account_setup_bloc.dart';
-import 'package:easy_booking/features/auth/presentation/bloc/login_bloc/login_bloc.dart';
-import 'package:easy_booking/features/auth/presentation/bloc/verify_code_bloc/verify_code_bloc.dart';
 
-/// The single composition root. Registrations are in dependency order:
-/// storage → session → clients → sources → repositories → use cases →
-/// BLoCs → router.
-abstract final class AppDependencies {
-  static final GetIt _getIt = GetIt.instance;
+/// The single composition root.
+///
+/// Owns a private GetIt container, so nothing is reachable through a global
+/// locator. The presentation layer resolves use cases with [getDep] through
+/// `AppDependenciesProvider.of(context)`. Registrations are in dependency
+/// order:
+/// storage → session → clients → sources → repositories → use cases → router.
+///
+/// BLoCs are not registered: each screen creates its own in
+/// `GoRouterWrapper.wrappedRoute` from the use cases resolved here.
+final class AppDependencies {
+  AppDependencies._(this._getIt);
+
+  /// Wraps a container that already holds the use cases (and the router, if
+  /// read), so tests can register fakes without [init].
+  @visibleForTesting
+  AppDependencies.fromContainer(GetIt getIt) : this._(getIt);
+
+  final GetIt _getIt;
 
   /// Registers everything and waits for the asynchronous dependencies.
   /// Call once, before `runApp`.
-  static Future<void> init() async {
-    _registerStorage();
-    _registerSession();
-    _registerClients();
-    _registerSources();
-    _registerRepositories();
-    _registerUsecases();
-    _registerBlocs();
-    _registerRouter();
-    await _getIt.allReady();
+  static Future<AppDependencies> init() async {
+    final AppDependencies dependencies = AppDependencies._(
+      GetIt.asNewInstance(),
+    );
+    dependencies
+      .._registerStorage()
+      .._registerSession()
+      .._registerClients()
+      .._registerSources()
+      .._registerRepositories()
+      .._registerUsecases()
+      .._registerRouter();
+    await dependencies._getIt.allReady();
+    return dependencies;
   }
 
-  /// Disposes every registration. Intended for tests.
-  static Future<void> reset() => _getIt.reset();
+  /// The registered [T]. Screens resolve use cases only; repositories, data
+  /// sources, storage, and clients are not for presentation.
+  T getDep<T extends Object>() => _getIt<T>();
 
-  /// Available after [init] completes.
-  static GoRouter get router => _getIt<GoRouter>();
-
-  static void _registerStorage() {
+  void _registerStorage() {
     _getIt
       ..registerSingletonAsync<PreferencesStorage>(
         PreferencesStorageImpl.create,
@@ -66,7 +81,7 @@ abstract final class AppDependencies {
       );
   }
 
-  static void _registerSession() {
+  void _registerSession() {
     _getIt.registerSingletonAsync<AuthSession>(
       () async {
         final AuthSession session = AuthSession(
@@ -80,7 +95,7 @@ abstract final class AppDependencies {
     );
   }
 
-  static void _registerClients() {
+  void _registerClients() {
     _getIt.registerLazySingleton<ApiClient>(() {
       final ApiConfig config = ApiConfig.fromEnvironment();
       if (config.baseUrl.isEmpty) {
@@ -93,19 +108,21 @@ abstract final class AppDependencies {
           config: config,
           interceptors: <Interceptor>[
             AuthInterceptor(session: _getIt<AuthSession>()),
+            // Last, so it sees the original error after `AuthInterceptor`.
+            const ErrorInterceptor(),
           ],
         ),
       );
     }, dispose: (ApiClient client) => client.close());
   }
 
-  static void _registerSources() {
+  void _registerSources() {
     _getIt.registerLazySingleton<AuthRemote>(
       () => AuthRemoteImpl(apiClient: _getIt<ApiClient>()),
     );
   }
 
-  static void _registerRepositories() {
+  void _registerRepositories() {
     _getIt.registerLazySingleton<AuthRepository>(
       () => AuthRepositoryImpl(
         remote: _getIt<AuthRemote>(),
@@ -114,7 +131,7 @@ abstract final class AppDependencies {
     );
   }
 
-  static void _registerUsecases() {
+  void _registerUsecases() {
     _getIt
       ..registerLazySingleton<SendCodeUsecase>(
         () => SendCodeUsecase(_getIt<AuthRepository>()),
@@ -130,26 +147,7 @@ abstract final class AppDependencies {
       );
   }
 
-  static void _registerBlocs() {
-    _getIt
-      ..registerFactory<LoginBloc>(
-        () => LoginBloc(sendCode: _getIt<SendCodeUsecase>()),
-      )
-      ..registerFactory<VerifyCodeBloc>(
-        () => VerifyCodeBloc(
-          verifyCode: _getIt<VerifyCodeUsecase>(),
-          sendCode: _getIt<SendCodeUsecase>(),
-        ),
-      )
-      ..registerFactory<AccountSetupBloc>(
-        () => AccountSetupBloc(
-          createAccount: _getIt<CreateAccountUsecase>(),
-          signOut: _getIt<SignOutUsecase>(),
-        ),
-      );
-  }
-
-  static void _registerRouter() {
+  void _registerRouter() {
     _getIt.registerLazySingleton<GoRouter>(
       () => AppRouter.create(session: _getIt<AuthSession>()),
       dispose: (GoRouter router) => router.dispose(),

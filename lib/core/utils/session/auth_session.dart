@@ -1,6 +1,9 @@
 import 'package:flutter/foundation.dart';
 
+import 'package:easy_booking/core/utils/either/either.dart';
 import 'package:easy_booking/core/utils/error/app_exception.dart';
+import 'package:easy_booking/core/utils/error/failure.dart';
+import 'package:easy_booking/core/utils/error/failure_mapper.dart';
 import 'package:easy_booking/core/utils/logger/app_logger.dart';
 import 'package:easy_booking/core/utils/session/auth_tokens.dart';
 import 'package:easy_booking/core/utils/session/session_storage.dart';
@@ -47,15 +50,22 @@ final class AuthSession extends ChangeNotifier {
 
   /// Persists the session first; it changes in memory only after both writes
   /// succeed. The flag is written before the tokens because the tokens are
-  /// what marks a session as restorable. Throws `StorageException` when a
-  /// write fails.
-  Future<void> signIn(
+  /// what marks a session as restorable. A failed write is returned as a
+  /// `StorageFailure` and leaves the session unchanged.
+  Future<Either<Failure, void>> signIn(
     AuthTokens tokens, {
     bool isAccountSetupPending = false,
   }) async {
-    await _sessionStorage.saveAccountSetupPending(isAccountSetupPending);
-    await _sessionStorage.saveTokens(tokens);
+    try {
+      await _sessionStorage.saveAccountSetupPending(isAccountSetupPending);
+      await _sessionStorage.saveTokens(tokens);
+    } on StorageException catch (exception, stackTrace) {
+      return Either<Failure, void>.left(
+        mapExceptionToFailure(exception, stackTrace),
+      );
+    }
     _update(tokens: tokens, isAccountSetupPending: isAccountSetupPending);
+    return const Either<Failure, void>.right(null);
   }
 
   /// Clears the account-setup flag after the account was created.
@@ -81,14 +91,21 @@ final class AuthSession extends ChangeNotifier {
   }
 
   /// Signs out in memory first, so new requests stop sending the token and
-  /// concurrent 401s return early, then clears the storage. Throws
-  /// `StorageException` when clearing fails; the session stays signed out.
-  Future<void> signOut() async {
+  /// concurrent 401s return early, then clears the storage. A failed clear
+  /// is returned as a `StorageFailure`; the session stays signed out.
+  Future<Either<Failure, void>> signOut() async {
     if (_tokens == null) {
-      return;
+      return const Either<Failure, void>.right(null);
     }
     _update(tokens: null, isAccountSetupPending: false);
-    await _sessionStorage.clearTokens();
+    try {
+      await _sessionStorage.clearTokens();
+    } on StorageException catch (exception, stackTrace) {
+      return Either<Failure, void>.left(
+        mapExceptionToFailure(exception, stackTrace),
+      );
+    }
+    return const Either<Failure, void>.right(null);
   }
 
   void _update({

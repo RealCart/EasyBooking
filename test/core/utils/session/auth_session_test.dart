@@ -2,7 +2,8 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:easy_booking/core/utils/error/app_exception.dart';
+import 'package:easy_booking/core/utils/either/either.dart';
+import 'package:easy_booking/core/utils/error/failure.dart';
 import 'package:easy_booking/core/utils/session/auth_session.dart';
 import 'package:easy_booking/core/utils/session/auth_tokens.dart';
 
@@ -147,9 +148,9 @@ void main() {
     test('does not change the session when the write fails', () async {
       storage.failWrites = true;
 
-      await expectLater(
-        session.signIn(_tokens),
-        throwsA(isA<StorageException>()),
+      expect(
+        await session.signIn(_tokens),
+        const Left<Failure, void>(StorageFailure(message: 'write failed')),
       );
 
       expect(session.isAuthenticated, isFalse);
@@ -160,9 +161,9 @@ void main() {
       await session.signIn(_tokens);
       storage.failWrites = true;
 
-      await expectLater(
-        session.signIn(_otherTokens),
-        throwsA(isA<StorageException>()),
+      expect(
+        await session.signIn(_otherTokens),
+        const Left<Failure, void>(StorageFailure(message: 'write failed')),
       );
 
       expect(session.tokens, _tokens);
@@ -241,12 +242,12 @@ void main() {
       expect(notifications, 1);
     });
 
-    test('a failed flag write throws before the tokens are written', () async {
+    test('a failed flag write fails before the tokens are written', () async {
       storage.failFlagWrites = true;
 
-      await expectLater(
-        session.signIn(_tokens, isAccountSetupPending: true),
-        throwsA(isA<StorageException>()),
+      expect(
+        await session.signIn(_tokens, isAccountSetupPending: true),
+        const Left<Failure, void>(StorageFailure(message: 'flag write failed')),
       );
 
       expect(storage.saveCount, 0);
@@ -259,9 +260,9 @@ void main() {
     test('a failed token write after the flag keeps the session', () async {
       storage.failWrites = true;
 
-      await expectLater(
-        session.signIn(_tokens, isAccountSetupPending: true),
-        throwsA(isA<StorageException>()),
+      expect(
+        await session.signIn(_tokens, isAccountSetupPending: true),
+        const Left<Failure, void>(StorageFailure(message: 'write failed')),
       );
 
       expect(session.isAuthenticated, isFalse);
@@ -359,23 +360,29 @@ void main() {
       expect(notifications, 2);
     });
 
-    test('clears the session even when storage fails, then rethrows', () async {
-      await session.signIn(_tokens);
-      storage.failClears = true;
+    test(
+      'clears the session even when storage fails, then returns it',
+      () async {
+        await session.signIn(_tokens);
+        storage.failClears = true;
 
-      await expectLater(session.signOut(), throwsA(isA<StorageException>()));
+        expect(
+          await session.signOut(),
+          const Left<Failure, void>(StorageFailure(message: 'clear failed')),
+        );
 
-      expect(session.isAuthenticated, isFalse);
-      expect(session.tokens, isNull);
-      expect(notifications, 2);
-    });
+        expect(session.isAuthenticated, isFalse);
+        expect(session.tokens, isNull);
+        expect(notifications, 2);
+      },
+    );
 
     test('signs out in memory before the storage clear completes', () async {
       await session.signIn(_tokens);
       final Completer<void> gate = Completer<void>();
       storage.clearGate = gate.future;
 
-      final Future<void> signOut = session.signOut();
+      final Future<Either<Failure, void>> signOut = session.signOut();
 
       expect(session.isAuthenticated, isFalse);
       expect(notifications, 2);
@@ -393,7 +400,7 @@ void main() {
       final Completer<void> gate = Completer<void>();
       storage.clearGate = gate.future;
 
-      final Future<void> first = session.signOut();
+      final Future<Either<Failure, void>> first = session.signOut();
       await session.signOut();
       gate.complete();
       await first;
@@ -416,7 +423,10 @@ void main() {
       await session.signIn(_tokens, isAccountSetupPending: true);
       storage.failClears = true;
 
-      await expectLater(session.signOut(), throwsA(isA<StorageException>()));
+      expect(
+        await session.signOut(),
+        const Left<Failure, void>(StorageFailure(message: 'clear failed')),
+      );
 
       expect(session.isAccountSetupPending, isFalse);
     });

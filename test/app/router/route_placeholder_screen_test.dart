@@ -10,7 +10,7 @@ void main() {
     testWidgets('shows a root header when nothing can be popped', (
       WidgetTester tester,
     ) async {
-      await RouterHarness.pump(tester);
+      await RouterHarness.pump(tester, initialLocation: '/calendar');
 
       expect(find.byType(AppRootHeader), findsOneWidget);
       expect(find.byType(AppDetailHeader), findsNothing);

@@ -5,19 +5,20 @@ import 'package:easy_booking/core/utils/error/failure.dart';
 import 'package:easy_booking/features/auth/domain/entity/account_fields.dart';
 import 'package:easy_booking/features/auth/domain/entity/auth_error_codes.dart';
 import 'package:easy_booking/features/auth/domain/entity/city_entity.dart';
+import 'package:easy_booking/features/auth/domain/entity/create_account_params_entity.dart';
 import 'package:easy_booking/features/auth/domain/entity/kazakhstan_cities.dart';
 import 'package:easy_booking/features/auth/domain/usecases/create_account_usecase.dart';
 
 import '../../../../helpers/fake_auth_repository.dart';
 
-CreateAccountParams _params({
+CreateAccountParamsEntity _params({
   String firstName = 'Айгерим',
   String lastName = 'Садыкова',
   String email = 'aigerim@example.kz',
   String teamName = 'Esentai Stay',
-  CityEntity? city = KazakhstanCities.almaty,
+  CityEntity city = KazakhstanCities.almaty,
 }) {
-  return CreateAccountParams(
+  return CreateAccountParamsEntity(
     firstName: firstName,
     lastName: lastName,
     email: email,
@@ -56,7 +57,7 @@ void main() {
       );
 
       expect(result.isRight, isTrue);
-      expect(repository.createAccountCalls, <CreateAccountParams>[
+      expect(repository.createAccountCalls, <CreateAccountParamsEntity>[
         _params(city: KazakhstanCities.shymkent),
       ]);
     });
@@ -72,12 +73,12 @@ void main() {
 
     test('reports every invalid field in one failure', () async {
       final Either<Failure, void> result = await usecase(
-        const CreateAccountParams(
+        const CreateAccountParamsEntity(
           firstName: '',
           lastName: '   ',
           email: 'not-an-email',
           teamName: '\n',
-          city: null,
+          city: KazakhstanCities.almaty,
         ),
       );
 
@@ -86,7 +87,6 @@ void main() {
         AccountFields.lastName: AuthErrorCodes.required,
         AccountFields.email: AuthErrorCodes.invalidEmail,
         AccountFields.teamName: AuthErrorCodes.required,
-        AccountFields.city: AuthErrorCodes.required,
       });
       expect(
         result,
@@ -104,14 +104,6 @@ void main() {
         _fieldErrorsOf(await usecase(_params(email: '  '))),
         <String, String>{AccountFields.email: AuthErrorCodes.required},
       );
-    });
-
-    test('a missing city alone is reported as required', () async {
-      expect(
-        _fieldErrorsOf(await usecase(_params(city: null))),
-        <String, String>{AccountFields.city: AuthErrorCodes.required},
-      );
-      expect(repository.createAccountCalls, isEmpty);
     });
 
     test('rejects malformed emails', () async {

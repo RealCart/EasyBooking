@@ -134,6 +134,38 @@ void main() {
       expect(calls, 2);
     });
 
+    test('flatMapAsync awaits the next step on Right', () async {
+      const Either<String, int> right = Right<String, int>(2);
+
+      expect(
+        await right.flatMapAsync(
+          (int value) async => Right<String, String>('${value * 2}'),
+        ),
+        const Right<String, String>('4'),
+      );
+      expect(
+        await right.flatMapAsync(
+          (int value) async => const Left<String, String>('step failed'),
+        ),
+        const Left<String, String>('step failed'),
+      );
+    });
+
+    test('flatMapAsync skips the next step on Left', () async {
+      const Either<String, int> left = Left<String, int>('first failed');
+      bool called = false;
+
+      final Either<String, String> result = await left.flatMapAsync((
+        int value,
+      ) async {
+        called = true;
+        return Right<String, String>('$value');
+      });
+
+      expect(result, const Left<String, String>('first failed'));
+      expect(called, isFalse);
+    });
+
     test('equal payloads on the same branch are equal', () {
       expect(const Left<String, int>('a'), const Left<String, int>('a'));
       expect(const Right<String, int>(1), const Right<String, int>(1));

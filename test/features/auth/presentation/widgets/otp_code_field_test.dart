@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:easy_booking/app/theme/app_theme.dart';
+import 'package:easy_booking/core/utils/form_validators.dart';
 import 'package:easy_booking/features/auth/presentation/widgets/otp_code_field.dart';
 
-/// Hosts an [OtpCodeField] whose `code` follows its own changes, as the
-/// BLoC does, and records every reported value.
+/// Hosts an [OtpCodeField] in a [Form] with its own controller and focus
+/// node, as a screen does, and records every reported value.
 final class _Host extends StatefulWidget {
   const _Host({required this.changes, this.errorText, this.readOnly = false});
 
@@ -18,20 +19,29 @@ final class _Host extends StatefulWidget {
 }
 
 final class _HostState extends State<_Host> {
-  String code = '';
+  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+  final TextEditingController controller = TextEditingController();
+  final FocusNode focusNode = FocusNode();
 
-  void setCode(String value) => setState(() => code = value);
+  @override
+  void dispose() {
+    controller.dispose();
+    focusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return OtpCodeField(
-      code: code,
-      errorText: widget.errorText,
-      readOnly: widget.readOnly,
-      onChanged: (String value) {
-        widget.changes.add(value);
-        setCode(value);
-      },
+    return Form(
+      key: formKey,
+      child: OtpCodeField(
+        controller: controller,
+        focusNode: focusNode,
+        validator: FormValidators.otp,
+        errorText: widget.errorText,
+        readOnly: widget.readOnly,
+        onChanged: widget.changes.add,
+      ),
     );
   }
 }
@@ -58,6 +68,10 @@ Future<List<String>> _pump(
     ),
   );
   return changes;
+}
+
+_HostState _host(WidgetTester tester) {
+  return tester.state<_HostState>(find.byType(_Host));
 }
 
 Finder get _input => find.byType(TextField);
@@ -145,18 +159,42 @@ void main() {
     expect(find.text('7'), findsNothing);
   });
 
-  testWidgets('a code cleared from outside empties the field', (
+  testWidgets('a code cleared by the controller empties the boxes', (
     WidgetTester tester,
   ) async {
     await _pump(tester);
     await tester.enterText(_input, '123456');
     await tester.pump();
 
-    tester.state<_HostState>(find.byType(_Host)).setCode('');
+    _host(tester).controller.clear();
     await tester.pump();
 
     expect(_text(tester), isEmpty);
     expect(find.text('1'), findsNothing);
+  });
+
+  testWidgets('validation shows the validator message over errorText', (
+    WidgetTester tester,
+  ) async {
+    await _pump(tester, errorText: 'Неверный код');
+    await tester.enterText(_input, '123');
+    await tester.pump();
+
+    expect(_host(tester).formKey.currentState!.validate(), isFalse);
+    await tester.pump();
+
+    expect(find.text(FormValidators.incompleteOtpMessage), findsOneWidget);
+    expect(find.text('Неверный код'), findsNothing);
+  });
+
+  testWidgets('a complete code passes validation', (
+    WidgetTester tester,
+  ) async {
+    await _pump(tester);
+    await tester.enterText(_input, '482913');
+    await tester.pump();
+
+    expect(_host(tester).formKey.currentState!.validate(), isTrue);
   });
 
   testWidgets('shows the error text', (WidgetTester tester) async {

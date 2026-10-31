@@ -31,6 +31,11 @@ final class AppHeaderBackButton extends StatelessWidget {
             height: AppSizes.touchTarget,
           ),
           padding: EdgeInsets.zero,
+          // Without it Material pads the button to 48 px, wider than the
+          // 44 px slot on the other side of the header, off-centring titles.
+          style: const ButtonStyle(
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
           onPressed: onPressed,
           icon: SvgPicture.asset(
             AppAssets.icons.chevronLeft,

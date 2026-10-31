@@ -10,7 +10,10 @@ import 'package:easy_booking/core/utils/session/session_storage.dart';
 /// Every call is appended to [operations] (for example `saveTokens` or
 /// `saveAccountSetupPending(true)`) so tests can check the write order.
 final class FakeSessionStorage implements SessionStorage {
-  FakeSessionStorage({this.storedTokens, this.storedAccountSetupPending = false});
+  FakeSessionStorage({
+    this.storedTokens,
+    this.storedAccountSetupPending = false,
+  });
 
   AuthTokens? storedTokens;
   bool storedAccountSetupPending;

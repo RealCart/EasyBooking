@@ -1,7 +1,15 @@
+import 'package:json_annotation/json_annotation.dart';
+
 import 'package:easy_booking/core/utils/error/app_exception.dart';
 import 'package:easy_booking/core/utils/session/auth_tokens.dart';
 
+part 'verify_code_response_model.g.dart';
+
 /// Response of `POST /auth/otp/verify`.
+///
+/// `fromJson` throws `CheckedFromJsonException` when a token or `isNewUser`
+/// is missing or has the wrong type. Its message never includes token values.
+@JsonSerializable(checked: true, createToJson: false)
 final class VerifyCodeResponseModel {
   const VerifyCodeResponseModel({
     required this.accessToken,
@@ -9,43 +17,16 @@ final class VerifyCodeResponseModel {
     this.refreshToken,
   });
 
-  /// Throws [ParsingException] when the tokens or `isNewUser` have the wrong
-  /// type. The messages never include token values.
-  factory VerifyCodeResponseModel.fromJson(Map<String, Object?> json) {
-    final Object? accessToken = json[_accessTokenKey];
-    if (accessToken is! String || accessToken.isEmpty) {
-      throw const ParsingException(
-        'VerifyCodeResponse: accessToken must be a non-empty String',
-      );
-    }
-    final String? refreshToken = switch (json[_refreshTokenKey]) {
-      null => null,
-      final String value => value,
-      _ => throw const ParsingException(
-        'VerifyCodeResponse: refreshToken must be a String or null',
-      ),
-    };
-    final Object? isNewUser = json[_isNewUserKey];
-    if (isNewUser is! bool) {
-      throw const ParsingException(
-        'VerifyCodeResponse: isNewUser must be a bool',
-      );
-    }
-    return VerifyCodeResponseModel(
-      accessToken: accessToken,
-      refreshToken: refreshToken,
-      isNewUser: isNewUser,
-    );
-  }
+  factory VerifyCodeResponseModel.fromJson(Map<String, dynamic> json) =>
+      _$VerifyCodeResponseModelFromJson(json);
 
-  static const String _accessTokenKey = 'accessToken';
-  static const String _refreshTokenKey = 'refreshToken';
-  static const String _isNewUserKey = 'isNewUser';
-
+  @JsonKey(required: true, fromJson: _nonEmptyString)
   final String accessToken;
+
   final String? refreshToken;
 
   /// The user has no account yet and must finish account setup.
+  @JsonKey(required: true)
   final bool isNewUser;
 
   AuthTokens toTokens() {
@@ -55,4 +36,11 @@ final class VerifyCodeResponseModel {
   // Keeps tokens out of logs and error reports.
   @override
   String toString() => 'VerifyCodeResponseModel(isNewUser: $isNewUser)';
+}
+
+String _nonEmptyString(Object? value) {
+  if (value is! String || value.isEmpty) {
+    throw const ParsingException('must be a non-empty String');
+  }
+  return value;
 }

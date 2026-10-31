@@ -30,7 +30,7 @@ final class AuthNoticeCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.large),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           spacing: AppSpacing.medium,
           children: <Widget>[
             ExcludeSemantics(

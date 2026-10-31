@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:json_annotation/json_annotation.dart';
 
-import 'package:easy_booking/core/utils/error/app_exception.dart';
 import 'package:easy_booking/features/auth/data/models/otp_challenge_model.dart';
 import 'package:easy_booking/features/auth/domain/entity/otp_challenge_entity.dart';
 
@@ -34,7 +34,7 @@ void main() {
       );
     });
 
-    test('throws ParsingException for a missing or invalid value', () {
+    test('throws CheckedFromJsonException for a missing or invalid value', () {
       for (final Map<String, Object?> json in <Map<String, Object?>>[
         const <String, Object?>{},
         const <String, Object?>{'resendAfterSeconds': null},
@@ -46,7 +46,7 @@ void main() {
       ]) {
         expect(
           () => OtpChallengeModel.fromJson(json),
-          throwsA(isA<ParsingException>()),
+          throwsA(isA<CheckedFromJsonException>()),
           reason: '$json',
         );
       }

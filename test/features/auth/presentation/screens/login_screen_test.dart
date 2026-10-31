@@ -7,6 +7,7 @@ import 'package:easy_booking/app/router/app_routes.dart';
 import 'package:easy_booking/app/theme/app_theme.dart';
 import 'package:easy_booking/core/utils/either/either.dart';
 import 'package:easy_booking/core/utils/error/failure.dart';
+import 'package:easy_booking/core/utils/form_validators.dart';
 import 'package:easy_booking/features/auth/domain/entity/auth_error_codes.dart';
 import 'package:easy_booking/features/auth/domain/entity/otp_challenge_entity.dart';
 import 'package:easy_booking/features/auth/domain/usecases/send_code_usecase.dart';
@@ -109,7 +110,7 @@ void main() {
     expect(find.textContaining('Условия и конфиденциальность'), findsNothing);
   });
 
-  testWidgets('typing formats the number and updates the BLoC', (
+  testWidgets('typing formats the number without touching the BLoC', (
     WidgetTester tester,
   ) async {
     final _Harness harness = await _Harness.pump(tester);
@@ -117,7 +118,36 @@ void main() {
     await harness.typePhone('7001234567');
 
     expect(harness.phoneText, '700 123 45 67');
-    expect(harness.bloc.state.phone, '7001234567');
+    expect(harness.bloc.state, const LoginState());
+  });
+
+  testWidgets('a keyboard submit of an incomplete number shows the error', (
+    WidgetTester tester,
+  ) async {
+    final _Harness harness = await _Harness.pump(tester);
+    await harness.typePhone('700123');
+
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
+
+    expect(find.text(FormValidators.invalidPhoneMessage), findsOneWidget);
+    expect(harness.repository.sentPhones, isEmpty);
+
+    // The error clears as soon as the number becomes valid.
+    await harness.typePhone('7001234567');
+    expect(find.text(FormValidators.invalidPhoneMessage), findsNothing);
+  });
+
+  testWidgets('a keyboard submit of a valid number sends the code', (
+    WidgetTester tester,
+  ) async {
+    final _Harness harness = await _Harness.pump(tester);
+    await harness.typePhone('7001234567');
+
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
+
+    expect(harness.repository.sentPhones, <String>['+77001234567']);
   });
 
   testWidgets('a pasted number with +7 keeps only the national part', (

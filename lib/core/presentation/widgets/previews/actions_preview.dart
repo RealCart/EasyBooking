@@ -29,9 +29,17 @@ class _ActionsPreview extends StatefulWidget {
 }
 
 class _ActionsPreviewState extends State<_ActionsPreview> {
-  int _selectedPropertyType = 0;
-  int _guestCount = 2;
-  bool _isSaved = true;
+  late int _selectedPropertyType;
+  late int _guestCount;
+  late bool _isSaved;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedPropertyType = 0;
+    _guestCount = 2;
+    _isSaved = true;
+  }
 
   @override
   Widget build(BuildContext context) {

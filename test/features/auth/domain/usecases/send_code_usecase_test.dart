@@ -4,6 +4,7 @@ import 'package:easy_booking/core/utils/either/either.dart';
 import 'package:easy_booking/core/utils/error/failure.dart';
 import 'package:easy_booking/features/auth/domain/entity/auth_error_codes.dart';
 import 'package:easy_booking/features/auth/domain/entity/otp_challenge_entity.dart';
+import 'package:easy_booking/features/auth/domain/entity/send_code_params_entity.dart';
 import 'package:easy_booking/features/auth/domain/usecases/send_code_usecase.dart';
 
 import '../../../../helpers/fake_auth_repository.dart';
@@ -28,7 +29,7 @@ void main() {
       ]) {
         repository.sentPhones.clear();
 
-        await usecase(input);
+        await usecase(SendCodeParamsEntity(phone: input));
 
         expect(repository.sentPhones, <String>['+77001234567'], reason: input);
       }
@@ -36,7 +37,7 @@ void main() {
 
     test('returns the repository challenge on success', () async {
       final Either<Failure, OtpChallengeEntity> result = await usecase(
-        '7001234567',
+        const SendCodeParamsEntity(phone: '7001234567'),
       );
 
       expect(
@@ -60,7 +61,7 @@ void main() {
       );
 
       expect(
-        await usecase('7001234567'),
+        await usecase(const SendCodeParamsEntity(phone: '7001234567')),
         const Left<Failure, OtpChallengeEntity>(failure),
       );
     });
@@ -74,7 +75,7 @@ void main() {
         'phone',
       ]) {
         expect(
-          await usecase(input),
+          await usecase(SendCodeParamsEntity(phone: input)),
           const Left<Failure, OtpChallengeEntity>(
             ValidationFailure(code: AuthErrorCodes.invalidPhone),
           ),

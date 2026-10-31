@@ -61,7 +61,10 @@ final class _Harness {
                   ..add(
                     VerifyCodeStarted(phone: _phone, resendAfter: resendAfter),
                   ),
-                child: const VerifyCodeScreen(phone: _phone),
+                child: VerifyCodeScreen(
+                  phone: _phone,
+                  resendAfter: resendAfter,
+                ),
               ),
             ),
           ],
@@ -179,13 +182,9 @@ void main() {
     await harness.typeCode('4');
 
     expect(find.text('Код истёк. Запросите новый'), findsNothing);
-    expect(harness.bloc.state.code, '4');
+    expect(harness.codeField.controller!.text, '4');
   });
 
-  // Known lib bug: when the failure arrives before the next frame, the
-  // field is rebuilt with the same `code` ('') as its last build, so
-  // `OtpCodeField.didUpdateWidget` does not sync the controller and the
-  // boxes keep showing the rejected digits while the BLoC code is empty.
   testWidgets('a verify failure in the same frame also clears the boxes', (
     WidgetTester tester,
   ) async {
@@ -202,7 +201,6 @@ void main() {
     await tester.pump();
 
     expect(find.text('Код истёк. Запросите новый'), findsOneWidget);
-    expect(harness.bloc.state.code, isEmpty);
     expect(harness.codeField.controller!.text, isEmpty);
   });
 
@@ -241,6 +239,23 @@ void main() {
 
     expect(harness.repository.sentPhones, <String>[_phone]);
     expect(find.text('Можно через 01:00'), findsOneWidget);
+  });
+
+  testWidgets('a resend success clears the typed digits', (
+    WidgetTester tester,
+  ) async {
+    final _Harness harness = await _Harness.pump(
+      tester,
+      resendAfter: Duration.zero,
+    );
+    await harness.typeCode('123');
+
+    await tester.tap(find.text('Отправить код повторно'));
+    await tester.pump();
+
+    expect(harness.repository.sentPhones, <String>[_phone]);
+    expect(harness.codeField.controller!.text, isEmpty);
+    expect(harness.repository.verifyCalls, isEmpty);
   });
 
   testWidgets('a resend failure shows a snackbar', (WidgetTester tester) async {

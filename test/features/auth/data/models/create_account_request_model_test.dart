@@ -1,15 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:easy_booking/features/auth/data/models/create_account_request_model.dart';
+import 'package:easy_booking/features/auth/domain/entity/create_account_params_entity.dart';
 import 'package:easy_booking/features/auth/domain/entity/kazakhstan_cities.dart';
-import 'package:easy_booking/features/auth/domain/usecases/create_account_usecase.dart';
 
 void main() {
   group('CreateAccountRequestModel', () {
-    test('fromParams maps the city to its id and time zone', () {
+    test('fromEntity maps the city to its id and time zone', () {
       final CreateAccountRequestModel model =
-          CreateAccountRequestModel.fromParams(
-            const CreateAccountParams(
+          CreateAccountRequestModel.fromEntity(
+            const CreateAccountParamsEntity(
               firstName: 'Айгерим',
               lastName: 'Садыкова',
               email: 'aigerim@example.kz',
@@ -22,7 +22,7 @@ void main() {
       expect(model.lastName, 'Садыкова');
       expect(model.email, 'aigerim@example.kz');
       expect(model.teamName, 'Esentai Stay');
-      expect(model.cityId, 'aktobe');
+      expect(model.city, 'aktobe');
       expect(model.timeZone, 'Asia/Aqtobe');
     });
 
@@ -32,7 +32,7 @@ void main() {
         lastName: 'Садыкова',
         email: 'aigerim@example.kz',
         teamName: 'Esentai Stay',
-        cityId: 'almaty',
+        city: 'almaty',
         timeZone: 'Asia/Almaty',
       );
 
@@ -44,21 +44,6 @@ void main() {
         'city': 'almaty',
         'timeZone': 'Asia/Almaty',
       });
-    });
-
-    test('fromParams rejects params without a city', () {
-      expect(
-        () => CreateAccountRequestModel.fromParams(
-          const CreateAccountParams(
-            firstName: 'a',
-            lastName: 'b',
-            email: 'c@d.kz',
-            teamName: 'e',
-            city: null,
-          ),
-        ),
-        throwsArgumentError,
-      );
     });
   });
 }

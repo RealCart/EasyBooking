@@ -1,21 +1,18 @@
 import 'package:flutter/widgets.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:easy_booking/app/router/app_routes.dart';
 import 'package:easy_booking/app/router/app_shell_screen.dart';
 import 'package:easy_booking/app/router/route_not_found_screen.dart';
 import 'package:easy_booking/app/router/route_placeholder_screen.dart';
+import 'package:easy_booking/core/utils/extensions/go_router_extension.dart';
 import 'package:easy_booking/core/utils/logger/app_logger.dart';
 import 'package:easy_booking/core/utils/phone_number.dart';
 import 'package:easy_booking/core/utils/session/auth_session.dart';
-import 'package:easy_booking/features/auth/presentation/bloc/account_setup_bloc/account_setup_bloc.dart';
-import 'package:easy_booking/features/auth/presentation/bloc/login_bloc/login_bloc.dart';
-import 'package:easy_booking/features/auth/presentation/bloc/verify_code_bloc/verify_code_bloc.dart';
 import 'package:easy_booking/features/auth/presentation/screens/account_setup_screen.dart';
 import 'package:easy_booking/features/auth/presentation/screens/login_screen.dart';
 import 'package:easy_booking/features/auth/presentation/screens/verify_code_screen.dart';
+import 'package:easy_booking/features/home/presentation/screens/home_screen.dart';
 
 abstract final class AppRouter {
   /// Builds the app router. It re-evaluates redirects whenever [session]
@@ -33,7 +30,7 @@ abstract final class AppRouter {
 
     return GoRouter(
       navigatorKey: rootNavigatorKey,
-      initialLocation: initialLocation ?? AppRoutes.today.path,
+      initialLocation: AppRoutes.today.path,
       refreshListenable: session,
       redirect: (BuildContext context, GoRouterState state) {
         return redirect(
@@ -50,7 +47,10 @@ abstract final class AppRouter {
         return const RouteNotFoundScreen();
       },
       routes: <RouteBase>[
-        GoRoute(path: '/', redirect: (_, _) => AppRoutes.today.path),
+        GoRoute(
+          path: AppRoutes.root.path,
+          redirect: (_, _) => AppRoutes.today.path,
+        ),
         ..._authRoutes(),
         _tabs(rootNavigatorKey),
         ..._flowRoutes(),
@@ -111,7 +111,7 @@ abstract final class AppRouter {
     }
     final String path = Uri.tryParse(from)?.path ?? '';
     if (path.isEmpty ||
-        path == '/' ||
+        path == AppRoutes.root.path ||
         path == AppRoutes.today.path ||
         path == AppRoutes.accountSetup.path ||
         _isLoginFlow(path)) {
@@ -136,19 +136,16 @@ abstract final class AppRouter {
 
   static List<RouteBase> _authRoutes() {
     return <RouteBase>[
-      GoRoute(
+      GoRouteExtension.wrappedRoute(
         name: AppRoutes.login.name,
         path: AppRoutes.login.path,
-        builder: (_, GoRouterState state) {
-          return BlocProvider<LoginBloc>(
-            create: (_) => GetIt.instance<LoginBloc>(),
-            child: LoginScreen(
-              from: state.uri.queryParameters[AppRoutes.fromQuery],
-            ),
+        wrappedBuilder: (_, GoRouterState state) {
+          return LoginScreen(
+            from: state.uri.queryParameters[AppRoutes.fromQuery],
           );
         },
         routes: <RouteBase>[
-          GoRoute(
+          GoRouteExtension.wrappedRoute(
             name: AppRoutes.verifyCode.name,
             path: AppRoutes.verifyCode.path,
             redirect: (_, GoRouterState state) {
@@ -160,33 +157,21 @@ abstract final class AppRouter {
                 state.uri.queryParameters[AppRoutes.fromQuery],
               );
             },
-            builder: (_, GoRouterState state) {
+            wrappedBuilder: (_, GoRouterState state) {
               // The route redirect above guarantees a valid phone.
-              final String phone = _verifyCodePhone(state)!;
-              final Duration resendAfter = _verifyCodeResendAfter(state);
-              return BlocProvider<VerifyCodeBloc>(
-                create: (_) => GetIt.instance<VerifyCodeBloc>()
-                  ..add(
-                    VerifyCodeStarted(phone: phone, resendAfter: resendAfter),
-                  ),
-                child: VerifyCodeScreen(
-                  phone: phone,
-                  from: state.uri.queryParameters[AppRoutes.fromQuery],
-                ),
+              return VerifyCodeScreen(
+                phone: _verifyCodePhone(state)!,
+                resendAfter: _verifyCodeResendAfter(state),
+                from: state.uri.queryParameters[AppRoutes.fromQuery],
               );
             },
           ),
         ],
       ),
-      GoRoute(
+      GoRouteExtension.wrappedRoute(
         name: AppRoutes.accountSetup.name,
         path: AppRoutes.accountSetup.path,
-        builder: (_, _) {
-          return BlocProvider<AccountSetupBloc>(
-            create: (_) => GetIt.instance<AccountSetupBloc>(),
-            child: const AccountSetupScreen(),
-          );
-        },
+        wrappedBuilder: (_, _) => const AccountSetupScreen(),
       ),
     ];
   }
@@ -214,38 +199,38 @@ abstract final class AppRouter {
       branches: <StatefulShellBranch>[
         StatefulShellBranch(
           routes: <RouteBase>[
-            GoRoute(
+            GoRouteExtension.wrappedRoute(
               name: AppRoutes.today.name,
               path: AppRoutes.today.path,
-              builder: (_, _) => const RoutePlaceholderScreen(title: 'Сегодня'),
+              wrappedBuilder: (_, _) => const HomeScreen(),
             ),
           ],
         ),
         StatefulShellBranch(
           routes: <RouteBase>[
-            GoRoute(
+            GoRouteExtension.wrappedRoute(
               name: AppRoutes.calendar.name,
               path: AppRoutes.calendar.path,
-              builder: (_, _) =>
+              wrappedBuilder: (_, _) =>
                   const RoutePlaceholderScreen(title: 'Календарь'),
               routes: <RouteBase>[
-                GoRoute(
+                GoRouteExtension.wrappedRoute(
                   name: AppRoutes.occupancy.name,
                   path: AppRoutes.occupancy.path,
-                  builder: (_, _) =>
+                  wrappedBuilder: (_, _) =>
                       const RoutePlaceholderScreen(title: 'Занятость'),
                 ),
-                GoRoute(
+                GoRouteExtension.wrappedRoute(
                   name: AppRoutes.channels.name,
                   path: AppRoutes.channels.path,
-                  builder: (_, _) =>
+                  wrappedBuilder: (_, _) =>
                       const RoutePlaceholderScreen(title: 'Каналы'),
                   routes: <RouteBase>[
-                    GoRoute(
+                    GoRouteExtension.wrappedRoute(
                       name: AppRoutes.channel.name,
                       path: AppRoutes.channel.path,
                       parentNavigatorKey: rootNavigatorKey,
-                      builder: (_, _) =>
+                      wrappedBuilder: (_, _) =>
                           const RoutePlaceholderScreen(title: 'Канал'),
                     ),
                   ],
@@ -256,15 +241,16 @@ abstract final class AppRouter {
         ),
         StatefulShellBranch(
           routes: <RouteBase>[
-            GoRoute(
+            GoRouteExtension.wrappedRoute(
               name: AppRoutes.properties.name,
               path: AppRoutes.properties.path,
-              builder: (_, _) => const RoutePlaceholderScreen(title: 'Объекты'),
+              wrappedBuilder: (_, _) =>
+                  const RoutePlaceholderScreen(title: 'Объекты'),
               routes: <RouteBase>[
-                GoRoute(
+                GoRouteExtension.wrappedRoute(
                   name: AppRoutes.favoriteProperties.name,
                   path: AppRoutes.favoriteProperties.path,
-                  builder: (_, _) =>
+                  wrappedBuilder: (_, _) =>
                       const RoutePlaceholderScreen(title: 'Избранные'),
                 ),
               ],
@@ -273,67 +259,68 @@ abstract final class AppRouter {
         ),
         StatefulShellBranch(
           routes: <RouteBase>[
-            GoRoute(
+            GoRouteExtension.wrappedRoute(
               name: AppRoutes.profile.name,
               path: AppRoutes.profile.path,
-              builder: (_, _) => const RoutePlaceholderScreen(title: 'Профиль'),
+              wrappedBuilder: (_, _) =>
+                  const RoutePlaceholderScreen(title: 'Профиль'),
               routes: <RouteBase>[
-                GoRoute(
+                GoRouteExtension.wrappedRoute(
                   name: AppRoutes.editProfile.name,
                   path: AppRoutes.editProfile.path,
                   parentNavigatorKey: rootNavigatorKey,
-                  builder: (_, _) => const RoutePlaceholderScreen(
+                  wrappedBuilder: (_, _) => const RoutePlaceholderScreen(
                     title: 'Редактировать профиль',
                   ),
                 ),
-                GoRoute(
+                GoRouteExtension.wrappedRoute(
                   name: AppRoutes.guests.name,
                   path: AppRoutes.guests.path,
-                  builder: (_, _) =>
+                  wrappedBuilder: (_, _) =>
                       const RoutePlaceholderScreen(title: 'Гости и договоры'),
                   routes: <RouteBase>[
-                    GoRoute(
+                    GoRouteExtension.wrappedRoute(
                       name: AppRoutes.guest.name,
                       path: AppRoutes.guest.path,
                       parentNavigatorKey: rootNavigatorKey,
-                      builder: (_, _) =>
+                      wrappedBuilder: (_, _) =>
                           const RoutePlaceholderScreen(title: 'Гость'),
                     ),
                   ],
                 ),
-                GoRoute(
+                GoRouteExtension.wrappedRoute(
                   name: AppRoutes.team.name,
                   path: AppRoutes.team.path,
                   parentNavigatorKey: rootNavigatorKey,
-                  builder: (_, _) =>
+                  wrappedBuilder: (_, _) =>
                       const RoutePlaceholderScreen(title: 'Команда и доступ'),
                 ),
-                GoRoute(
+                GoRouteExtension.wrappedRoute(
                   name: AppRoutes.notificationSettings.name,
                   path: AppRoutes.notificationSettings.path,
                   parentNavigatorKey: rootNavigatorKey,
-                  builder: (_, _) =>
+                  wrappedBuilder: (_, _) =>
                       const RoutePlaceholderScreen(title: 'Уведомления'),
                 ),
-                GoRoute(
+                GoRouteExtension.wrappedRoute(
                   name: AppRoutes.security.name,
                   path: AppRoutes.security.path,
                   parentNavigatorKey: rootNavigatorKey,
-                  builder: (_, _) =>
+                  wrappedBuilder: (_, _) =>
                       const RoutePlaceholderScreen(title: 'Безопасность'),
                 ),
-                GoRoute(
+                GoRouteExtension.wrappedRoute(
                   name: AppRoutes.billing.name,
                   path: AppRoutes.billing.path,
                   parentNavigatorKey: rootNavigatorKey,
-                  builder: (_, _) =>
+                  wrappedBuilder: (_, _) =>
                       const RoutePlaceholderScreen(title: 'Тариф и оплата'),
                 ),
-                GoRoute(
+                GoRouteExtension.wrappedRoute(
                   name: AppRoutes.help.name,
                   path: AppRoutes.help.path,
                   parentNavigatorKey: rootNavigatorKey,
-                  builder: (_, _) =>
+                  wrappedBuilder: (_, _) =>
                       const RoutePlaceholderScreen(title: 'Помощь'),
                 ),
               ],
@@ -349,96 +336,103 @@ abstract final class AppRouter {
       // Top level so Today and Calendar can open it without switching the
       // shell to the Properties branch. The shell is declared first, so
       // `/properties/favorites` still matches inside the Properties tab.
-      GoRoute(
+      GoRouteExtension.wrappedRoute(
         name: AppRoutes.property.name,
         path: AppRoutes.property.path,
-        builder: (_, _) => const RoutePlaceholderScreen(title: 'Ваш объект'),
+        wrappedBuilder: (_, _) =>
+            const RoutePlaceholderScreen(title: 'Ваш объект'),
         routes: <RouteBase>[
-          GoRoute(
+          GoRouteExtension.wrappedRoute(
             name: AppRoutes.propertyBookings.name,
             path: AppRoutes.propertyBookings.path,
-            builder: (_, _) =>
+            wrappedBuilder: (_, _) =>
                 const RoutePlaceholderScreen(title: 'Бронирования'),
           ),
-          GoRoute(
+          GoRouteExtension.wrappedRoute(
             name: AppRoutes.propertySettings.name,
             path: AppRoutes.propertySettings.path,
-            builder: (_, _) => const RoutePlaceholderScreen(title: 'Настройки'),
+            wrappedBuilder: (_, _) =>
+                const RoutePlaceholderScreen(title: 'Настройки'),
           ),
-          GoRoute(
+          GoRouteExtension.wrappedRoute(
             name: AppRoutes.propertyReady.name,
             path: AppRoutes.propertyReady.path,
-            builder: (_, _) =>
+            wrappedBuilder: (_, _) =>
                 const RoutePlaceholderScreen(title: 'Квартира готова'),
           ),
         ],
       ),
-      GoRoute(
+      GoRouteExtension.wrappedRoute(
         name: AppRoutes.addProperty.name,
         path: AppRoutes.addProperty.path,
-        builder: (_, _) =>
+        wrappedBuilder: (_, _) =>
             const RoutePlaceholderScreen(title: 'Добавить квартиру'),
         routes: <RouteBase>[
-          GoRoute(
+          GoRouteExtension.wrappedRoute(
             name: AppRoutes.addPropertyChannels.name,
             path: AppRoutes.addPropertyChannels.path,
-            builder: (_, _) =>
+            wrappedBuilder: (_, _) =>
                 const RoutePlaceholderScreen(title: 'Подключите площадки'),
           ),
-          GoRoute(
+          GoRouteExtension.wrappedRoute(
             name: AppRoutes.addPropertyTerms.name,
             path: AppRoutes.addPropertyTerms.path,
-            builder: (_, _) =>
+            wrappedBuilder: (_, _) =>
                 const RoutePlaceholderScreen(title: 'Условия проживания'),
           ),
         ],
       ),
       // Declared before `/bookings/:bookingId` so `new` is not an id.
-      GoRoute(
+      GoRouteExtension.wrappedRoute(
         name: AppRoutes.newBooking.name,
         path: AppRoutes.newBooking.path,
-        builder: (_, _) => const RoutePlaceholderScreen(title: 'Новая бронь'),
+        wrappedBuilder: (_, _) =>
+            const RoutePlaceholderScreen(title: 'Новая бронь'),
         routes: <RouteBase>[
-          GoRoute(
+          GoRouteExtension.wrappedRoute(
             name: AppRoutes.newBookingGuest.name,
             path: AppRoutes.newBookingGuest.path,
-            builder: (_, _) => const RoutePlaceholderScreen(title: 'Гость'),
+            wrappedBuilder: (_, _) =>
+                const RoutePlaceholderScreen(title: 'Гость'),
           ),
         ],
       ),
-      GoRoute(
+      GoRouteExtension.wrappedRoute(
         name: AppRoutes.booking.name,
         path: AppRoutes.booking.path,
-        builder: (_, _) => const RoutePlaceholderScreen(title: 'Бронирование'),
+        wrappedBuilder: (_, _) =>
+            const RoutePlaceholderScreen(title: 'Бронирование'),
       ),
-      GoRoute(
+      GoRouteExtension.wrappedRoute(
         name: AppRoutes.contract.name,
         path: AppRoutes.contract.path,
-        builder: (_, _) => const RoutePlaceholderScreen(title: 'Договор'),
+        wrappedBuilder: (_, _) =>
+            const RoutePlaceholderScreen(title: 'Договор'),
         routes: <RouteBase>[
-          GoRoute(
+          GoRouteExtension.wrappedRoute(
             name: AppRoutes.contractSend.name,
             path: AppRoutes.contractSend.path,
-            builder: (_, _) =>
+            wrappedBuilder: (_, _) =>
                 const RoutePlaceholderScreen(title: 'Отправка договора'),
           ),
-          GoRoute(
+          GoRouteExtension.wrappedRoute(
             name: AppRoutes.contractStatus.name,
             path: AppRoutes.contractStatus.path,
-            builder: (_, _) =>
+            wrappedBuilder: (_, _) =>
                 const RoutePlaceholderScreen(title: 'Статус договора'),
           ),
         ],
       ),
-      GoRoute(
+      GoRouteExtension.wrappedRoute(
         name: AppRoutes.notifications.name,
         path: AppRoutes.notifications.path,
-        builder: (_, _) => const RoutePlaceholderScreen(title: 'Уведомления'),
+        wrappedBuilder: (_, _) =>
+            const RoutePlaceholderScreen(title: 'Уведомления'),
       ),
-      GoRoute(
+      GoRouteExtension.wrappedRoute(
         name: AppRoutes.calendarConflict.name,
         path: AppRoutes.calendarConflict.path,
-        builder: (_, _) =>
+        wrappedBuilder: (_, _) =>
             const RoutePlaceholderScreen(title: 'Конфликт календарей'),
       ),
     ];

@@ -1,5 +1,6 @@
 import 'package:easy_booking/core/utils/error/failure.dart';
 import 'package:easy_booking/core/utils/error/failure_message.dart';
+import 'package:easy_booking/core/utils/form_validators.dart';
 import 'package:easy_booking/features/auth/domain/entity/auth_error_codes.dart';
 
 extension AuthFailureMessage on Failure {
@@ -21,7 +22,7 @@ extension AuthFailureMessage on Failure {
       _ => null,
     };
     return switch (code) {
-      AuthErrorCodes.invalidPhone => 'Проверьте номер телефона',
+      AuthErrorCodes.invalidPhone => FormValidators.invalidPhoneMessage,
       AuthErrorCodes.invalidCode => 'Неверный код',
       AuthErrorCodes.codeExpired => 'Код истёк. Запросите новый',
       AuthErrorCodes.tooManyRequests => tooManyRequests,
@@ -38,8 +39,8 @@ String? authFieldErrorMessage(String? code) {
     return null;
   }
   return switch (code) {
-    AuthErrorCodes.required => 'Заполните поле',
-    AuthErrorCodes.invalidEmail => 'Проверьте адрес почты',
+    AuthErrorCodes.required => FormValidators.requiredMessage,
+    AuthErrorCodes.invalidEmail => FormValidators.invalidEmailMessage,
     _ => 'Проверьте поле',
   };
 }

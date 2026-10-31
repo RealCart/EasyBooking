@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:easy_booking/core/utils/network/auth_interceptor.dart';
+import 'package:easy_booking/core/utils/network/interceptors/auth_interceptor.dart';
 import 'package:easy_booking/core/utils/session/auth_session.dart';
 import 'package:easy_booking/core/utils/session/auth_tokens.dart';
 

@@ -1,7 +1,9 @@
 import 'package:dio/dio.dart';
 
-import 'package:easy_booking/core/utils/error/app_exception.dart';
+import 'package:easy_booking/core/utils/either/either.dart';
+import 'package:easy_booking/core/utils/error/failure.dart';
 import 'package:easy_booking/core/utils/logger/app_logger.dart';
+import 'package:easy_booking/core/utils/network/app_api.dart';
 import 'package:easy_booking/core/utils/session/auth_session.dart';
 import 'package:easy_booking/core/utils/session/auth_tokens.dart';
 
@@ -16,13 +18,11 @@ final class AuthInterceptor extends Interceptor {
 
   final AuthSession _session;
 
-  static const String _authorizationHeader = 'Authorization';
-
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     final AuthTokens? tokens = _session.tokens;
     if (!_skipsAuth(options) && tokens != null) {
-      options.headers[_authorizationHeader] = _bearer(tokens);
+      options.headers[AppApi.authorizationHeader] = _bearer(tokens);
     }
     handler.next(options);
   }
@@ -33,13 +33,11 @@ final class AuthInterceptor extends Interceptor {
     ErrorInterceptorHandler handler,
   ) async {
     if (err.response?.statusCode == 401 && _usedCurrentToken(err)) {
-      try {
-        await _session.signOut();
-      } on StorageException catch (exception, stackTrace) {
+      final Either<Failure, void> result = await _session.signOut();
+      if (result case Left<Failure, void>(value: final Failure failure)) {
         AppLogger.warning(
           'Session closed in memory but tokens were not cleared',
-          error: exception,
-          stackTrace: stackTrace,
+          error: failure,
         );
       }
     }
@@ -55,8 +53,11 @@ final class AuthInterceptor extends Interceptor {
   bool _usedCurrentToken(DioException err) {
     final AuthTokens? tokens = _session.tokens;
     return tokens != null &&
-        err.requestOptions.headers[_authorizationHeader] == _bearer(tokens);
+        err.requestOptions.headers[AppApi.authorizationHeader] ==
+            _bearer(tokens);
   }
 
-  String _bearer(AuthTokens tokens) => 'Bearer ${tokens.accessToken}';
+  String _bearer(AuthTokens tokens) {
+    return '${AppApi.bearerScheme} ${tokens.accessToken}';
+  }
 }

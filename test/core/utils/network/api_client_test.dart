@@ -1,6 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:easy_booking/core/utils/either/either.dart';
+import 'package:easy_booking/core/utils/network/interceptors/error_interceptor.dart';
+import 'package:easy_booking/core/utils/error/failure.dart';
 import 'package:easy_booking/core/utils/network/api_client.dart';
 
 import '../../../helpers/fake_http_client_adapter.dart';
@@ -57,21 +60,26 @@ void main() {
     );
   }
 
-  test('get forwards every argument and returns the response', () async {
+  Object? keepBody(Object? data) => data;
+
+  test('get forwards every argument and returns the parsed body', () async {
     final CancelToken cancelToken = CancelToken();
     adapter.respond(200, <String, Object?>{'id': 1});
 
-    final Response<Map<String, Object?>> response = await client
-        .get<Map<String, Object?>>(
-          '/items',
-          data: body,
-          queryParameters: query,
-          options: options(),
-          cancelToken: cancelToken,
-          onReceiveProgress: onReceive,
-        );
+    final Either<Failure, Object?> result = await client.get(
+      '/items',
+      parse: keepBody,
+      data: body,
+      queryParameters: query,
+      options: options(),
+      cancelToken: cancelToken,
+      onReceiveProgress: onReceive,
+    );
 
-    expect(response.data, <String, Object?>{'id': 1});
+    expect(
+      result,
+      const Right<Failure, Object?>(<String, Object?>{'id': 1}),
+    );
     expectForwarded(
       adapter.requests.single,
       method: 'GET',
@@ -83,8 +91,9 @@ void main() {
   test('post forwards every argument', () async {
     final CancelToken cancelToken = CancelToken();
 
-    await client.post<Object?>(
+    await client.post(
       '/items',
+      parse: keepBody,
       data: body,
       queryParameters: query,
       options: options(),
@@ -103,8 +112,9 @@ void main() {
   test('put forwards every argument', () async {
     final CancelToken cancelToken = CancelToken();
 
-    await client.put<Object?>(
+    await client.put(
       '/items',
+      parse: keepBody,
       data: body,
       queryParameters: query,
       options: options(),
@@ -123,8 +133,9 @@ void main() {
   test('patch forwards every argument', () async {
     final CancelToken cancelToken = CancelToken();
 
-    await client.patch<Object?>(
+    await client.patch(
       '/items',
+      parse: keepBody,
       data: body,
       queryParameters: query,
       options: options(),
@@ -143,8 +154,9 @@ void main() {
   test('delete forwards every argument', () async {
     final CancelToken cancelToken = CancelToken();
 
-    await client.delete<Object?>(
+    await client.delete(
       '/items',
+      parse: keepBody,
       data: body,
       queryParameters: query,
       options: options(),
@@ -160,35 +172,74 @@ void main() {
     );
   });
 
-  test('error statuses surface as DioException badResponse', () async {
-    adapter.respond(500);
+  test('an error status is a Left with the mapped failure', () async {
+    adapter.respond(500, <String, Object?>{'code': 'down'});
 
-    await expectLater(
-      client.get<Object?>('/items'),
-      throwsA(
-        isA<DioException>().having(
-          (DioException e) => e.type,
-          'type',
-          DioExceptionType.badResponse,
-        ),
+    expect(
+      await client.get('/items', parse: keepBody),
+      const Left<Failure, Object?>(
+        ServerFailure(statusCode: 500, code: 'down'),
       ),
     );
   });
 
-  test('a cancelled token surfaces as DioException cancel', () async {
+  test('a cancelled token is a Left CancelledFailure', () async {
     final CancelToken cancelToken = CancelToken()..cancel('obsolete');
 
-    await expectLater(
-      client.get<Object?>('/items', cancelToken: cancelToken),
-      throwsA(
-        isA<DioException>().having(
-          (DioException e) => e.type,
-          'type',
-          DioExceptionType.cancel,
-        ),
+    final Either<Failure, Object?> result = await client.get(
+      '/items',
+      parse: keepBody,
+      cancelToken: cancelToken,
+    );
+
+    expect(result, isA<Left<Failure, Object?>>());
+    expect((result as Left<Failure, Object?>).value, isA<CancelledFailure>());
+    expect(adapter.requests, isEmpty);
+  });
+
+  test('returns the failure stored by ErrorInterceptor as is', () async {
+    dio.interceptors.add(const ErrorInterceptor());
+    adapter.respond(401, <String, Object?>{'message': 'expired'});
+
+    expect(
+      await client.get('/items', parse: keepBody),
+      const Left<Failure, Object?>(UnauthorizedFailure(message: 'expired')),
+    );
+  });
+
+  test('a parse exception is a Left ParsingFailure', () async {
+    adapter.respond(200, <Object?>[1, 2]);
+
+    expect(
+      await client.get(
+        '/items',
+        parse: jsonObject((Map<String, dynamic> json) => json),
+      ),
+      const Left<Failure, Map<String, dynamic>>(
+        ParsingFailure(message: 'Expected a JSON object, got List<dynamic>'),
       ),
     );
-    expect(adapter.requests, isEmpty);
+  });
+
+  test('an Error thrown by the parser propagates', () async {
+    adapter.respond(200, <String, Object?>{'id': 1});
+
+    await expectLater(
+      client.get<int>('/items', parse: (_) => throw StateError('bug')),
+      throwsA(isA<StateError>()),
+    );
+  });
+
+  test('jsonObject passes a JSON object to fromJson', () async {
+    adapter.respond(200, <String, Object?>{'id': 7});
+
+    expect(
+      await client.get(
+        '/items',
+        parse: jsonObject<Object?>((Map<String, dynamic> json) => json['id']),
+      ),
+      const Right<Failure, Object?>(7),
+    );
   });
 
   test('close releases the Dio adapter', () {

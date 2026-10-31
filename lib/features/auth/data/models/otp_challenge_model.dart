@@ -1,23 +1,22 @@
+import 'package:json_annotation/json_annotation.dart';
+
 import 'package:easy_booking/core/utils/error/app_exception.dart';
 import 'package:easy_booking/features/auth/domain/entity/otp_challenge_entity.dart';
 
+part 'otp_challenge_model.g.dart';
+
 /// Response of `POST /auth/otp/send`.
+///
+/// `fromJson` throws `CheckedFromJsonException` when `resendAfterSeconds`
+/// is missing, not an int, or negative.
+@JsonSerializable(checked: true, createToJson: false)
 final class OtpChallengeModel {
   const OtpChallengeModel({required this.resendAfterSeconds});
 
-  /// Throws [ParsingException] when `resendAfterSeconds` is not an int ≥ 0.
-  factory OtpChallengeModel.fromJson(Map<String, Object?> json) {
-    final Object? resendAfterSeconds = json[_resendAfterSecondsKey];
-    if (resendAfterSeconds is! int || resendAfterSeconds < 0) {
-      throw const ParsingException(
-        'OtpChallenge: resendAfterSeconds must be a non-negative int',
-      );
-    }
-    return OtpChallengeModel(resendAfterSeconds: resendAfterSeconds);
-  }
+  factory OtpChallengeModel.fromJson(Map<String, dynamic> json) =>
+      _$OtpChallengeModelFromJson(json);
 
-  static const String _resendAfterSecondsKey = 'resendAfterSeconds';
-
+  @JsonKey(required: true, fromJson: _nonNegativeInt)
   final int resendAfterSeconds;
 
   /// The response does not echo the number, so the caller passes the one the
@@ -28,4 +27,11 @@ final class OtpChallengeModel {
       resendAfter: Duration(seconds: resendAfterSeconds),
     );
   }
+}
+
+int _nonNegativeInt(Object? value) {
+  if (value is! int || value < 0) {
+    throw const ParsingException('must be a non-negative int');
+  }
+  return value;
 }

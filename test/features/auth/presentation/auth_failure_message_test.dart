@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:easy_booking/core/utils/error/failure.dart';
 import 'package:easy_booking/core/utils/error/failure_message.dart';
 import 'package:easy_booking/features/auth/domain/entity/auth_error_codes.dart';
-import 'package:easy_booking/features/auth/presentation/auth_failure_message.dart';
+import 'package:easy_booking/core/utils/error/auth_failure_message.dart';
 
 const String _tooMany = 'Слишком много попыток. Попробуйте позже';
 

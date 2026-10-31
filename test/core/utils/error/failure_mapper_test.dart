@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:json_annotation/json_annotation.dart';
 
-import 'package:easy_booking/core/utils/either/either.dart';
 import 'package:easy_booking/core/utils/error/app_exception.dart';
 import 'package:easy_booking/core/utils/error/failure.dart';
 import 'package:easy_booking/core/utils/error/failure_mapper.dart';
@@ -41,76 +41,6 @@ final class _CustomException implements Exception {
 }
 
 void main() {
-  group('runGuarded', () {
-    test('returns Right with the action result on success', () async {
-      final Either<Failure, int> result = await runGuarded<int>(
-        () async => 42,
-      );
-
-      expect(result, const Right<Failure, int>(42));
-    });
-
-    test('supports void actions', () async {
-      final Either<Failure, void> result = await runGuarded<void>(
-        () async {},
-      );
-
-      expect(result.isRight, isTrue);
-    });
-
-    test(
-      'converts a thrown Exception to Left with the mapped failure',
-      () async {
-        final Either<Failure, int> result = await runGuarded<int>(
-          () async => throw const StorageException('disk full'),
-        );
-
-        expect(
-          result,
-          const Left<Failure, int>(StorageFailure(message: 'disk full')),
-        );
-      },
-    );
-
-    test('converts a synchronous throw inside the action', () async {
-      final Either<Failure, int> result = await runGuarded<int>(
-        () => throw const FormatException('bad json'),
-      );
-
-      expect(
-        result,
-        const Left<Failure, int>(ParsingFailure(message: 'bad json')),
-      );
-    });
-
-    test('converts an unknown Exception to UnexpectedFailure', () async {
-      final Either<Failure, int> result = await runGuarded<int>(
-        () async => throw _CustomException(),
-      );
-
-      expect(
-        result,
-        const Left<Failure, int>(
-          UnexpectedFailure(message: 'CustomException: boom'),
-        ),
-      );
-    });
-
-    test('lets an Error propagate as a programming defect', () async {
-      await expectLater(
-        runGuarded<int>(() async => throw StateError('bug')),
-        throwsA(isA<StateError>()),
-      );
-    });
-
-    test('lets a non-Exception thrown object propagate', () async {
-      await expectLater(
-        runGuarded<int>(() async => throw 'not an exception'),
-        throwsA('not an exception'),
-      );
-    });
-  });
-
   group('mapExceptionToFailure for DioException', () {
     for (final DioExceptionType type in <DioExceptionType>[
       DioExceptionType.connectionTimeout,
@@ -346,6 +276,32 @@ void main() {
       expect(
         mapExceptionToFailure(const FormatException('bad date')),
         const ParsingFailure(message: 'bad date'),
+      );
+    });
+
+    test('CheckedFromJsonException maps to ParsingFailure without values', () {
+      final Failure failure = mapExceptionToFailure(
+        CheckedFromJsonException(
+          const <String, Object?>{'accessToken': 'secret-token'},
+          'accessToken',
+          'TokenModel',
+          'must be a non-empty String',
+        ),
+      );
+
+      expect(
+        failure,
+        const ParsingFailure(
+          message: 'TokenModel.accessToken: must be a non-empty String',
+        ),
+      );
+      expect(failure.message, isNot(contains('secret')));
+    });
+
+    test('accepts the stack trace of the catch clause', () {
+      expect(
+        mapExceptionToFailure(_CustomException(), StackTrace.current),
+        const UnexpectedFailure(message: 'CustomException: boom'),
       );
     });
 

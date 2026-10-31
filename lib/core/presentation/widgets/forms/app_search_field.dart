@@ -33,11 +33,12 @@ class AppSearchField extends StatefulWidget {
 class _AppSearchFieldState extends State<AppSearchField> {
   late TextEditingController _controller;
   late bool _ownsController;
-  bool _hasFocus = false;
+  late bool _hasFocus;
 
   @override
   void initState() {
     super.initState();
+    _hasFocus = false;
     _setController(widget.controller);
   }
 

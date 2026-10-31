@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:json_annotation/json_annotation.dart';
 
-import 'package:easy_booking/core/utils/error/app_exception.dart';
 import 'package:easy_booking/core/utils/session/auth_tokens.dart';
 import 'package:easy_booking/features/auth/data/models/verify_code_response_model.dart';
 
@@ -41,14 +41,14 @@ void main() {
       );
     });
 
-    test('throws ParsingException for an invalid access token', () {
+    test('throws CheckedFromJsonException for an invalid access token', () {
       for (final Object? accessToken in <Object?>[null, '', 42, true]) {
         expect(
           () => VerifyCodeResponseModel.fromJson(<String, Object?>{
             ..._valid,
             'accessToken': accessToken,
           }),
-          throwsA(isA<ParsingException>()),
+          throwsA(isA<CheckedFromJsonException>()),
           reason: '$accessToken',
         );
       }
@@ -56,41 +56,44 @@ void main() {
         () => VerifyCodeResponseModel.fromJson(
           <String, Object?>{..._valid}..remove('accessToken'),
         ),
-        throwsA(isA<ParsingException>()),
+        throwsA(isA<CheckedFromJsonException>()),
       );
     });
 
-    test('throws ParsingException for a non-string refresh token', () {
+    test('throws CheckedFromJsonException for a non-string refresh token', () {
       for (final Object refreshToken in <Object>[42, false, <String>[]]) {
         expect(
           () => VerifyCodeResponseModel.fromJson(<String, Object?>{
             ..._valid,
             'refreshToken': refreshToken,
           }),
-          throwsA(isA<ParsingException>()),
+          throwsA(isA<CheckedFromJsonException>()),
           reason: '$refreshToken',
         );
       }
     });
 
-    test('throws ParsingException for a missing or non-bool isNewUser', () {
-      for (final Object? isNewUser in <Object?>[null, 'true', 1]) {
+    test(
+      'throws CheckedFromJsonException for a missing or non-bool isNewUser',
+      () {
+        for (final Object? isNewUser in <Object?>[null, 'true', 1]) {
+          expect(
+            () => VerifyCodeResponseModel.fromJson(<String, Object?>{
+              ..._valid,
+              'isNewUser': isNewUser,
+            }),
+            throwsA(isA<CheckedFromJsonException>()),
+            reason: '$isNewUser',
+          );
+        }
         expect(
-          () => VerifyCodeResponseModel.fromJson(<String, Object?>{
-            ..._valid,
-            'isNewUser': isNewUser,
-          }),
-          throwsA(isA<ParsingException>()),
-          reason: '$isNewUser',
+          () => VerifyCodeResponseModel.fromJson(
+            <String, Object?>{..._valid}..remove('isNewUser'),
+          ),
+          throwsA(isA<CheckedFromJsonException>()),
         );
-      }
-      expect(
-        () => VerifyCodeResponseModel.fromJson(
-          <String, Object?>{..._valid}..remove('isNewUser'),
-        ),
-        throwsA(isA<ParsingException>()),
-      );
-    });
+      },
+    );
 
     test('parsing errors never include token values', () {
       for (final Map<String, Object?> json in <Map<String, Object?>>[
@@ -99,8 +102,8 @@ void main() {
       ]) {
         try {
           VerifyCodeResponseModel.fromJson(json);
-          fail('Expected a ParsingException for $json');
-        } on ParsingException catch (exception) {
+          fail('Expected a CheckedFromJsonException for $json');
+        } on CheckedFromJsonException catch (exception) {
           expect(exception.toString(), isNot(contains('secret')));
         }
       }

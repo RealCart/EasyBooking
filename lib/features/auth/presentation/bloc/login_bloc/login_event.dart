@@ -7,18 +7,12 @@ sealed class LoginEvent extends Equatable {
   List<Object?> get props => const <Object?>[];
 }
 
-/// The phone field changed. [phone] may be formatted; the state keeps only
-/// the national digits.
-final class LoginPhoneChanged extends LoginEvent {
-  const LoginPhoneChanged(this.phone);
+/// The validated login form asked for an SMS code.
+final class LoginSubmitted extends LoginEvent {
+  const LoginSubmitted(this.params);
 
-  final String phone;
+  final SendCodeParamsEntity params;
 
   @override
-  List<Object?> get props => <Object?>[phone];
-}
-
-/// The user asked for an SMS code.
-final class LoginSubmitted extends LoginEvent {
-  const LoginSubmitted();
+  List<Object?> get props => <Object?>[params];
 }

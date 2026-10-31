@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import 'package:easy_booking/core/utils/network/app_api.dart';
+
 final class ApiConfig {
   const ApiConfig({
     required this.baseUrl,
@@ -9,12 +11,12 @@ final class ApiConfig {
     this.enableLogging = false,
   });
 
-  /// Reads the base URL from `--dart-define=API_BASE_URL=https://...`.
+  /// Uses [AppApi.baseUrl], set with `--dart-define=API_BASE_URL=...`.
   ///
   /// Request and response bodies are logged in debug builds only.
   factory ApiConfig.fromEnvironment() {
     return const ApiConfig(
-      baseUrl: String.fromEnvironment('API_BASE_URL'),
+      baseUrl: AppApi.baseUrl,
       enableLogging: kDebugMode,
     );
   }

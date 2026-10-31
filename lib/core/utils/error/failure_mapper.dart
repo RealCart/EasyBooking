@@ -1,39 +1,46 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:json_annotation/json_annotation.dart';
 
-import 'package:easy_booking/core/utils/either/either.dart';
 import 'package:easy_booking/core/utils/error/app_exception.dart';
+import 'package:easy_booking/core/utils/error/error_response_model.dart';
 import 'package:easy_booking/core/utils/error/failure.dart';
 import 'package:easy_booking/core/utils/logger/app_logger.dart';
 
-/// Runs a data-layer [action] and converts expected exceptions to a [Failure].
+/// Converts an exception caught at the repository boundary to a [Failure].
 ///
-/// Use it in repository implementations, the only place where exceptions
-/// become `Either.left`. Only [Exception]s are converted: an [Error] means a
-/// programming defect and keeps propagating.
-Future<Either<Failure, T>> runGuarded<T>(Future<T> Function() action) async {
-  try {
-    return Either<Failure, T>.right(await action());
-  } on Exception catch (exception, stackTrace) {
-    final Failure failure = mapExceptionToFailure(exception);
-    if (failure is UnexpectedFailure) {
-      AppLogger.error(
-        'Unexpected exception in data layer',
-        error: exception,
-        stackTrace: stackTrace,
-      );
-    }
-    return Either<Failure, T>.left(failure);
+/// Repositories call it from `on Exception catch (exception, stackTrace)`,
+/// so an [Error] (a programming defect) is never caught and keeps
+/// propagating. An exception that no failure describes is logged with
+/// [stackTrace] and returned as [UnexpectedFailure].
+Failure mapExceptionToFailure(Exception exception, [StackTrace? stackTrace]) {
+  final Failure failure = _mapException(exception);
+  if (failure is UnexpectedFailure) {
+    AppLogger.error(
+      'Unexpected exception in data layer',
+      error: exception,
+      stackTrace: stackTrace,
+    );
   }
+  return failure;
 }
 
-Failure mapExceptionToFailure(Exception exception) {
+Failure _mapException(Exception exception) {
   return switch (exception) {
     DioException() => _mapDioException(exception),
     ParsingException(:final String message) => ParsingFailure(message: message),
     StorageException(:final String message) => StorageFailure(message: message),
     FormatException(:final String message) => ParsingFailure(message: message),
+    // Thrown by generated `fromJson` of `@JsonSerializable(checked: true)`
+    // models. Only the class, key, and error text are kept: `map` holds the
+    // raw values, which may be tokens.
+    CheckedFromJsonException(
+      :final String? className,
+      :final String? key,
+      :final String? message,
+    ) =>
+      ParsingFailure(message: '$className.$key: $message'),
     _ => UnexpectedFailure(message: exception.toString()),
   };
 }
@@ -61,7 +68,7 @@ Failure _mapDioException(DioException exception) {
         return ConnectionFailure(message: message);
       }
       if (cause is Exception && cause is! DioException) {
-        return mapExceptionToFailure(cause);
+        return _mapException(cause);
       }
       return UnexpectedFailure(message: message);
   }
@@ -69,7 +76,7 @@ Failure _mapDioException(DioException exception) {
 
 Failure _mapBadResponse(Response<Object?>? response) {
   final int? statusCode = response?.statusCode;
-  final _ErrorBody body = _ErrorBody.parse(response?.data);
+  final ErrorResponseModel body = ErrorResponseModel.parse(response?.data);
 
   if (statusCode == 401) {
     return UnauthorizedFailure(message: body.message);
@@ -77,7 +84,7 @@ Failure _mapBadResponse(Response<Object?>? response) {
   if (statusCode == 400 || statusCode == 422) {
     return ValidationFailure(
       code: body.code,
-      fieldErrors: body.fieldErrors,
+      fieldErrors: body.errors,
       message: body.message,
     );
   }
@@ -86,52 +93,4 @@ Failure _mapBadResponse(Response<Object?>? response) {
     code: body.code,
     message: body.message,
   );
-}
-
-/// Error payload read defensively from `{code, message, errors}`.
-///
-/// `errors` may map a field to a string or to a list of strings; only the
-/// first string is kept. Unknown shapes produce empty values.
-final class _ErrorBody {
-  const _ErrorBody({
-    this.code,
-    this.message,
-    this.fieldErrors = const <String, String>{},
-  });
-
-  factory _ErrorBody.parse(Object? data) {
-    if (data is! Map<String, Object?>) {
-      return const _ErrorBody();
-    }
-    final Object? code = data['code'];
-    final Object? message = data['message'];
-    return _ErrorBody(
-      code: code is String ? code : null,
-      message: message is String ? message : null,
-      fieldErrors: _parseFieldErrors(data['errors']),
-    );
-  }
-
-  final String? code;
-  final String? message;
-  final Map<String, String> fieldErrors;
-
-  static Map<String, String> _parseFieldErrors(Object? errors) {
-    if (errors is! Map<String, Object?>) {
-      return const <String, String>{};
-    }
-    final Map<String, String> result = <String, String>{};
-    for (final MapEntry<String, Object?>(:String key, :Object? value)
-        in errors.entries) {
-      final String? text = switch (value) {
-        final String text => text,
-        [final String first, ...] => first,
-        _ => null,
-      };
-      if (text != null) {
-        result[key] = text;
-      }
-    }
-    return Map<String, String>.unmodifiable(result);
-  }
 }

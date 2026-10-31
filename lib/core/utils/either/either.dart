@@ -47,6 +47,17 @@ sealed class Either<L, R> extends Equatable {
       Right<L, R>(:final R value) => transform(value),
     };
   }
+
+  /// Like [flatMap] for an asynchronous next step: runs [transform] only on
+  /// a [Right] and completes with its result; a [Left] is passed through.
+  Future<Either<L, T>> flatMapAsync<T>(
+    Future<Either<L, T>> Function(R right) transform,
+  ) async {
+    return switch (this) {
+      Left<L, R>(:final L value) => Left<L, T>(value),
+      Right<L, R>(:final R value) => transform(value),
+    };
+  }
 }
 
 final class Left<L, R> extends Either<L, R> {

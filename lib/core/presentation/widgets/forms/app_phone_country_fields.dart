@@ -20,11 +20,14 @@ class AppPhoneCountryFields extends StatelessWidget {
     required this.countryValue,
     required this.onCountryPressed,
     this.phoneController,
+    this.phoneFocusNode,
     this.countryLabel = 'Country',
     this.phoneLabel = 'Phone number',
     this.phoneHint,
     this.phoneErrorText,
     this.onPhoneChanged,
+    this.onPhoneSubmitted,
+    this.phoneValidator,
     this.phoneInputFormatters,
     this.layout = AppPhoneCountryLayout.adaptive,
     this.isCountryReadOnly = false,
@@ -41,11 +44,16 @@ class AppPhoneCountryFields extends StatelessWidget {
   /// announced as disabled, unless [isCountryReadOnly] is set.
   final VoidCallback? onCountryPressed;
   final TextEditingController? phoneController;
+  final FocusNode? phoneFocusNode;
   final String countryLabel;
   final String phoneLabel;
   final String? phoneHint;
   final String? phoneErrorText;
   final ValueChanged<String>? onPhoneChanged;
+  final ValueChanged<String>? onPhoneSubmitted;
+
+  /// Validates the phone inside an enclosing `Form`.
+  final FormFieldValidator<String>? phoneValidator;
   final List<TextInputFormatter>? phoneInputFormatters;
   final AppPhoneCountryLayout layout;
 
@@ -61,6 +69,7 @@ class AppPhoneCountryFields extends StatelessWidget {
     final bool isStacked = layout == AppPhoneCountryLayout.stacked;
     final Widget phoneField = AppTextField(
       controller: phoneController,
+      focusNode: phoneFocusNode,
       label: phoneLabel,
       hint: phoneHint,
       errorText: phoneErrorText,
@@ -69,6 +78,8 @@ class AppPhoneCountryFields extends StatelessWidget {
       textInputAction: TextInputAction.done,
       autofillHints: const <String>[AutofillHints.telephoneNumber],
       onChanged: onPhoneChanged,
+      onSubmitted: onPhoneSubmitted,
+      validator: phoneValidator,
       inputFormatters: phoneInputFormatters,
     );
 

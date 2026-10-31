@@ -30,6 +30,7 @@ export 'feedback/app_snackbar.dart';
 export 'forms/app_document_tile.dart';
 export 'forms/app_flow_footer.dart';
 export 'forms/app_phone_country_fields.dart';
+export 'forms/app_picker_field.dart';
 export 'forms/app_search_field.dart';
 export 'forms/app_text_field.dart';
 export 'forms/app_upload_field.dart';

@@ -11,7 +11,9 @@ class AppArrivalCard extends StatelessWidget {
     required this.time,
     required this.propertyName,
     required this.stayDetails,
+    this.imageUrl,
     this.status,
+    this.statusIconPath,
     this.onTap,
     super.key,
   });
@@ -19,7 +21,13 @@ class AppArrivalCard extends StatelessWidget {
   final String time;
   final String propertyName;
   final String stayDetails;
+
+  /// Asset path of the property photo; a surface placeholder when `null`.
+  final String? imageUrl;
   final String? status;
+
+  /// Asset path of the 14 px status icon; a check mark when `null`.
+  final String? statusIconPath;
   final VoidCallback? onTap;
 
   @override
@@ -40,7 +48,9 @@ class AppArrivalCard extends StatelessWidget {
                   aspectRatio: 1,
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(AppRadii.card),
-                    child: const ColoredBox(color: AppColors.surface),
+                    child: imageUrl == null
+                        ? const ColoredBox(color: AppColors.surface)
+                        : Image.asset(imageUrl!, fit: BoxFit.cover),
                   ),
                 ),
                 Positioned(
@@ -89,7 +99,7 @@ class AppArrivalCard extends StatelessWidget {
               Row(
                 children: <Widget>[
                   SvgPicture.asset(
-                    AppAssets.icons.checkSmall,
+                    statusIconPath ?? AppAssets.icons.checkSmall,
                     width: 14,
                     height: 14,
                   ),

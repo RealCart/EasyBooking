@@ -76,10 +76,19 @@ class _NavigationPreviewGalleryState extends State<NavigationPreviewGallery> {
         ),
       ];
 
-  int _selectedTab = 0;
-  int _selectedScope = 0;
-  int _selectedDestination = 0;
-  DateTime _selectedDate = DateTime(2026, 10, 22);
+  late int _selectedTab;
+  late int _selectedScope;
+  late int _selectedDestination;
+  late DateTime _selectedDate;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedTab = 0;
+    _selectedScope = 0;
+    _selectedDestination = 0;
+    _selectedDate = DateTime(2026, 10, 22);
+  }
 
   @override
   Widget build(BuildContext context) {

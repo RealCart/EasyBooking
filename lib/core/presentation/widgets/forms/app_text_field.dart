@@ -5,7 +5,12 @@ import 'package:easy_booking/app/theme/app_colors.dart';
 import 'package:easy_booking/app/theme/app_radii.dart';
 import 'package:easy_booking/app/theme/app_typography.dart';
 
-class AppTextField extends StatefulWidget {
+/// A text field drawn as a 72 px box with the label above the input.
+///
+/// The box is the [TextFormField]'s own decoration, so a tap anywhere on it
+/// focuses the input, and [validator] runs as part of the enclosing `Form`.
+/// Its message is shown below the box and takes precedence over [errorText].
+class AppTextField extends StatelessWidget {
   const AppTextField({
     this.controller,
     this.initialValue,
@@ -28,10 +33,38 @@ class AppTextField extends StatefulWidget {
     this.minLines,
     this.autofillHints,
     this.inputFormatters,
+    this.validator,
     super.key,
   }) : assert(controller == null || initialValue == null),
        assert(maxLines == null || maxLines > 0),
        assert(minLines == null || minLines > 0);
+
+  // The decorator draws a floating label at 0.75 of its style, so a 16 px
+  // style shows the 12 px / 18 px label of the design.
+  static const TextStyle _labelStyle = TextStyle(
+    fontFamily: AppTypography.fontFamily,
+    fontSize: 16,
+    height: 18 / 12,
+  );
+
+  // The input starts `4 + 0.75 × labelStyle.fontSize` below the top padding
+  // when the label floats. This size gives 20 px: the 18 px label and a 2 px
+  // gap. The inline style is otherwise never shown.
+  static const double _labelSlotHeight = 20;
+  static const TextStyle _labelSlotStyle = TextStyle(
+    fontSize: (_labelSlotHeight - 4) / 0.75,
+  );
+
+  // A filled, non-outline decoration adds this gap on both sides of the
+  // input, so the paddings below are 4 px narrower than the design.
+  static const double _inputGap = 4;
+
+  static const TextStyle _errorStyle = TextStyle(
+    fontFamily: AppTypography.fontFamily,
+    fontSize: 12,
+    height: 18 / 12,
+    color: AppColors.error,
+  );
 
   final TextEditingController? controller;
   final String? initialValue;
@@ -55,161 +88,196 @@ class AppTextField extends StatefulWidget {
   final Iterable<String>? autofillHints;
   final List<TextInputFormatter>? inputFormatters;
 
-  @override
-  State<AppTextField> createState() => _AppTextFieldState();
-}
+  /// Runs on `FormState.validate()` of the enclosing `Form` with the current
+  /// text. Its message is shown like [errorText] and takes precedence.
+  final FormFieldValidator<String>? validator;
 
-class _AppTextFieldState extends State<AppTextField> {
-  FocusNode? _ownedFocusNode;
-  FocusNode get _focusNode =>
-      widget.focusNode ?? (_ownedFocusNode ??= FocusNode());
-
-  @override
-  void initState() {
-    super.initState();
-    _focusNode.addListener(_handleFocus);
+  static Widget _buildError(BuildContext context, String errorText) {
+    // With the decorator's 4 px gap, 6 px between the box and the message.
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: Text(errorText, style: _errorStyle),
+    );
   }
-
-  @override
-  void didUpdateWidget(covariant AppTextField oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.focusNode != widget.focusNode) {
-      (oldWidget.focusNode ?? _ownedFocusNode)?.removeListener(_handleFocus);
-      if (widget.focusNode != null) {
-        _ownedFocusNode?.dispose();
-        _ownedFocusNode = null;
-      }
-      _focusNode.addListener(_handleFocus);
-    }
-  }
-
-  @override
-  void dispose() {
-    _focusNode.removeListener(_handleFocus);
-    _ownedFocusNode?.dispose();
-    super.dispose();
-  }
-
-  void _handleFocus() => setState(() {});
 
   @override
   Widget build(BuildContext context) {
-    final bool hasError = widget.errorText != null;
-    final Color borderColor = hasError
-        ? AppColors.error
-        : _focusNode.hasFocus
-        ? AppColors.text
-        : AppColors.border;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Opacity(
-          opacity: widget.enabled ? 1 : 0.4,
-          child: Container(
-            constraints: const BoxConstraints(minHeight: 72),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: AppColors.background,
-              border: Border.all(
-                color: borderColor,
-                width: _focusNode.hasFocus && !hasError ? 2 : 1,
-              ),
-              borderRadius: BorderRadius.circular(AppRadii.field),
+    final Widget? leading = this.leading;
+    final Widget? trailing = this.trailing;
+    final String? errorText = this.errorText;
+
+    return Opacity(
+      opacity: enabled ? 1 : 0.4,
+      child: TextFormField(
+        controller: controller,
+        initialValue: initialValue,
+        focusNode: focusNode,
+        validator: validator,
+        errorBuilder: _buildError,
+        onChanged: onChanged,
+        onFieldSubmitted: onSubmitted,
+        onTap: onTap,
+        keyboardType: keyboardType,
+        textInputAction: textInputAction,
+        obscureText: obscureText,
+        enabled: enabled,
+        readOnly: readOnly,
+        autocorrect: autocorrect,
+        maxLines: maxLines,
+        minLines: minLines,
+        autofillHints: autofillHints,
+        inputFormatters: inputFormatters,
+        cursorColor: AppColors.accent,
+        onTapUpOutside: (event) => focusNode?.unfocus(),
+        style: AppTypography.bodyLarge.copyWith(color: AppColors.text),
+        decoration: InputDecoration(
+          labelText: label,
+          floatingLabelBehavior: FloatingLabelBehavior.always,
+          labelStyle: _labelSlotStyle,
+          floatingLabelStyle: WidgetStateTextStyle.resolveWith(
+            (Set<WidgetState> states) => _labelStyle.copyWith(
+              color: states.contains(WidgetState.error)
+                  ? AppColors.error
+                  : AppColors.secondaryText,
             ),
-            child: Row(
-              children: <Widget>[
-                if (widget.leading != null) ...<Widget>[
-                  widget.leading!,
-                  const SizedBox(width: 12),
-                ],
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      if (widget.label case final String label) ...<Widget>[
-                        ExcludeSemantics(
-                          child: Text(
-                            label,
-                            style:
-                                const TextStyle(
-                                  fontFamily: AppTypography.fontFamily,
-                                  fontSize: 12,
-                                  height: 18 / 12,
-                                ).copyWith(
-                                  color: hasError
-                                      ? AppColors.error
-                                      : AppColors.secondaryText,
-                                ),
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                      ],
-                      Semantics(
-                        label: <String>[
-                          if (widget.label case final String label) label,
-                          if (widget.errorText case final String error) error,
-                        ].join(', '),
-                        child: TextFormField(
-                          controller: widget.controller,
-                          initialValue: widget.initialValue,
-                          focusNode: _focusNode,
-                          onChanged: widget.onChanged,
-                          onFieldSubmitted: widget.onSubmitted,
-                          onTap: widget.onTap,
-                          keyboardType: widget.keyboardType,
-                          textInputAction: widget.textInputAction,
-                          obscureText: widget.obscureText,
-                          enabled: widget.enabled,
-                          readOnly: widget.readOnly,
-                          autocorrect: widget.autocorrect,
-                          maxLines: widget.maxLines,
-                          minLines: widget.minLines,
-                          autofillHints: widget.autofillHints,
-                          inputFormatters: widget.inputFormatters,
-                          cursorColor: AppColors.accent,
-                          style: AppTypography.bodyLarge.copyWith(
-                            color: AppColors.text,
-                          ),
-                          decoration: InputDecoration(
-                            hintText: widget.hint,
-                            hintStyle: AppTypography.bodyLarge.copyWith(
-                              color: AppColors.secondaryText,
-                            ),
-                            isDense: true,
-                            contentPadding: EdgeInsets.zero,
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
-                            disabledBorder: InputBorder.none,
-                          ),
-                        ),
-                      ),
-                    ],
+          ),
+          hintText: hint,
+          hintStyle: AppTypography.bodyLarge.copyWith(
+            color: AppColors.secondaryText,
+          ),
+          error: errorText == null ? null : _buildError(context, errorText),
+          prefixIcon: leading == null
+              ? null
+              : Padding(
+                  padding: const EdgeInsetsDirectional.only(
+                    start: 16,
+                    end: 12 - _inputGap,
                   ),
+                  child: leading,
                 ),
-                if (widget.trailing != null) ...<Widget>[
-                  const SizedBox(width: 8),
-                  widget.trailing!,
-                ],
-              ],
-            ),
+          prefixIconConstraints: const BoxConstraints(),
+          prefixIconColor: AppColors.text,
+          suffixIcon: trailing == null
+              ? null
+              : Padding(
+                  padding: const EdgeInsetsDirectional.only(
+                    start: 8 - _inputGap,
+                    end: 16,
+                  ),
+                  child: trailing,
+                ),
+          suffixIconConstraints: const BoxConstraints(),
+          suffixIconColor: AppColors.text,
+          constraints: const BoxConstraints(minHeight: 72),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16 - _inputGap,
+            vertical: 12,
+          ),
+          filled: true,
+          fillColor: AppColors.background,
+          hoverColor: Colors.transparent,
+          border: const _AppFieldBorder(
+            borderSide: BorderSide(color: AppColors.border),
+          ),
+          enabledBorder: const _AppFieldBorder(
+            borderSide: BorderSide(color: AppColors.border),
+          ),
+          disabledBorder: const _AppFieldBorder(
+            borderSide: BorderSide(color: AppColors.border),
+          ),
+          focusedBorder: const _AppFieldBorder(
+            borderSide: BorderSide(color: AppColors.text, width: 2),
+          ),
+          errorBorder: const _AppFieldBorder(
+            borderSide: BorderSide(color: AppColors.error),
+          ),
+          focusedErrorBorder: const _AppFieldBorder(
+            borderSide: BorderSide(color: AppColors.error),
           ),
         ),
-        if (widget.errorText case final String errorText) ...<Widget>[
-          const SizedBox(height: 6),
-          Text(
-            errorText,
-            style: const TextStyle(
-              fontFamily: AppTypography.fontFamily,
-              fontSize: 12,
-              height: 18 / 12,
-              color: AppColors.error,
-            ),
-          ),
-        ],
-      ],
+      ),
     );
   }
+}
+
+/// A rounded box border drawn inside the field's bounds.
+///
+/// Unlike `OutlineInputBorder` it is not an outline border for the
+/// decorator, so the floating label sits inside the box under the top
+/// padding instead of being notched into the border line.
+final class _AppFieldBorder extends InputBorder {
+  const _AppFieldBorder({super.borderSide});
+
+  static const BorderRadius _radius = BorderRadius.all(
+    Radius.circular(AppRadii.field),
+  );
+
+  @override
+  bool get isOutline => false;
+
+  @override
+  _AppFieldBorder copyWith({BorderSide? borderSide}) {
+    return _AppFieldBorder(borderSide: borderSide ?? this.borderSide);
+  }
+
+  @override
+  EdgeInsetsGeometry get dimensions => EdgeInsets.all(borderSide.width);
+
+  @override
+  _AppFieldBorder scale(double t) {
+    return _AppFieldBorder(borderSide: borderSide.scale(t));
+  }
+
+  @override
+  ShapeBorder? lerpFrom(ShapeBorder? a, double t) {
+    if (a is _AppFieldBorder) {
+      return _AppFieldBorder(
+        borderSide: BorderSide.lerp(a.borderSide, borderSide, t),
+      );
+    }
+    return super.lerpFrom(a, t);
+  }
+
+  @override
+  ShapeBorder? lerpTo(ShapeBorder? b, double t) {
+    if (b is _AppFieldBorder) {
+      return _AppFieldBorder(
+        borderSide: BorderSide.lerp(borderSide, b.borderSide, t),
+      );
+    }
+    return super.lerpTo(b, t);
+  }
+
+  @override
+  Path getInnerPath(Rect rect, {TextDirection? textDirection}) {
+    return Path()..addRRect(_radius.toRRect(rect).deflate(borderSide.width));
+  }
+
+  @override
+  Path getOuterPath(Rect rect, {TextDirection? textDirection}) {
+    return Path()..addRRect(_radius.toRRect(rect));
+  }
+
+  @override
+  void paint(
+    Canvas canvas,
+    Rect rect, {
+    double? gapStart,
+    double gapExtent = 0.0,
+    double gapPercentage = 0.0,
+    TextDirection? textDirection,
+  }) {
+    canvas.drawRRect(
+      _radius.toRRect(rect).deflate(borderSide.width / 2),
+      borderSide.toPaint(),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is _AppFieldBorder && other.borderSide == borderSide;
+  }
+
+  @override
+  int get hashCode => borderSide.hashCode;
 }

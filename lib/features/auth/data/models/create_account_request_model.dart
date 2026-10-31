@@ -1,54 +1,47 @@
-import 'package:easy_booking/features/auth/domain/entity/account_fields.dart';
-import 'package:easy_booking/features/auth/domain/entity/city_entity.dart';
-import 'package:easy_booking/features/auth/domain/usecases/create_account_usecase.dart';
+import 'package:json_annotation/json_annotation.dart';
+
+import 'package:easy_booking/features/auth/domain/entity/create_account_params_entity.dart';
+
+part 'create_account_request_model.g.dart';
 
 /// Body of `POST /auth/account`.
+@JsonSerializable(createFactory: false)
 final class CreateAccountRequestModel {
   const CreateAccountRequestModel({
     required this.firstName,
     required this.lastName,
     required this.email,
     required this.teamName,
-    required this.cityId,
+    required this.city,
     required this.timeZone,
   });
 
-  /// [params] must come from `CreateAccountUsecase`, which guarantees a city;
-  /// a missing city is a programming error.
-  factory CreateAccountRequestModel.fromParams(CreateAccountParams params) {
-    final CityEntity? city = params.city;
-    if (city == null) {
-      throw ArgumentError.value(params.city, 'params.city', 'must not be null');
-    }
+  factory CreateAccountRequestModel.fromEntity(
+    CreateAccountParamsEntity params,
+  ) {
     return CreateAccountRequestModel(
       firstName: params.firstName,
       lastName: params.lastName,
       email: params.email,
       teamName: params.teamName,
-      cityId: city.id,
-      timeZone: city.timeZone,
+      city: params.city.id,
+      timeZone: params.city.timeZone,
     );
   }
 
-  static const String _timeZoneKey = 'timeZone';
-
   final String firstName;
+
   final String lastName;
+
   final String email;
+
   final String teamName;
-  final String cityId;
+
+  /// Id of the picked city.
+  final String city;
 
   /// IANA id of the city's time zone.
   final String timeZone;
 
-  Map<String, Object?> toJson() {
-    return <String, Object?>{
-      AccountFields.firstName: firstName,
-      AccountFields.lastName: lastName,
-      AccountFields.email: email,
-      AccountFields.teamName: teamName,
-      AccountFields.city: cityId,
-      _timeZoneKey: timeZone,
-    };
-  }
+  Map<String, dynamic> toJson() => _$CreateAccountRequestModelToJson(this);
 }

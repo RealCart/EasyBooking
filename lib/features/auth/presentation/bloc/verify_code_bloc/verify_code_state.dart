@@ -3,7 +3,6 @@ part of 'verify_code_bloc.dart';
 final class VerifyCodeState extends Equatable {
   const VerifyCodeState({
     this.phone = '',
-    this.code = '',
     this.verifyStatus = RequestStatus.initial,
     this.verifyFailure,
     this.resendStatus = RequestStatus.initial,
@@ -13,9 +12,6 @@ final class VerifyCodeState extends Equatable {
 
   /// E.164 number the code was sent to.
   final String phone;
-
-  /// Digits entered so far, at most `Validators.otpLength`.
-  final String code;
 
   final RequestStatus verifyStatus;
 
@@ -36,16 +32,15 @@ final class VerifyCodeState extends Equatable {
       !resendStatus.isLoading &&
       !verifyStatus.isLoading;
 
-  /// Whether the confirm button is enabled.
+  /// Whether a code may be submitted now; the screen also requires a
+  /// complete code.
   bool get canSubmit =>
-      code.length == Validators.otpLength &&
       !verifyStatus.isLoading &&
       !verifyStatus.isSuccess &&
       !resendStatus.isLoading;
 
   VerifyCodeState copyWith({
     String? phone,
-    String? code,
     RequestStatus? verifyStatus,
     Failure? verifyFailure,
     bool resetVerifyFailure = false,
@@ -56,7 +51,6 @@ final class VerifyCodeState extends Equatable {
   }) {
     return VerifyCodeState(
       phone: phone ?? this.phone,
-      code: code ?? this.code,
       verifyStatus: verifyStatus ?? this.verifyStatus,
       verifyFailure: resetVerifyFailure
           ? null
@@ -72,7 +66,6 @@ final class VerifyCodeState extends Equatable {
   @override
   List<Object?> get props => <Object?>[
     phone,
-    code,
     verifyStatus,
     verifyFailure,
     resendStatus,

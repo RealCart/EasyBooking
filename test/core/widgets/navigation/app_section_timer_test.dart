@@ -72,6 +72,112 @@ void main() {
     await tester.pump();
     expect(resendCount, 1);
   });
+
+  group('AppResendTimerRow detailed layout', () {
+    Future<void> pumpRow(
+      WidgetTester tester, {
+      required Duration? remaining,
+      required VoidCallback onResend,
+      String subtitle = 'Можно через 00:28',
+      Widget? leading = const Icon(Icons.schedule),
+    }) {
+      return tester.pumpWidget(
+        _TestApp(
+          child: AppResendTimerRow(
+            prompt: 'Код не пришёл?',
+            actionLabel: 'Отправить код повторно',
+            subtitle: subtitle,
+            leading: leading,
+            remaining: remaining,
+            onResend: onResend,
+          ),
+        ),
+      );
+    }
+
+    testWidgets('while waiting shows subtitle, leading and timer, disabled', (
+      WidgetTester tester,
+    ) async {
+      final SemanticsHandle handle = tester.ensureSemantics();
+      int resendCount = 0;
+      await pumpRow(
+        tester,
+        remaining: const Duration(seconds: 28),
+        onResend: () => resendCount++,
+      );
+
+      expect(find.text('Отправить код повторно'), findsOneWidget);
+      expect(find.text('Можно через 00:28'), findsOneWidget);
+      expect(find.text('00:28'), findsOneWidget);
+      expect(find.byIcon(Icons.schedule), findsOneWidget);
+      expect(
+        tester.getSemantics(find.bySemanticsLabel('Отправить код повторно')),
+        isSemantics(
+          isButton: true,
+          hasEnabledState: true,
+          isEnabled: false,
+          hasTapAction: false,
+        ),
+      );
+
+      await tester.tap(find.text('Отправить код повторно'));
+      await tester.tap(find.byIcon(Icons.schedule));
+      await tester.pump();
+      expect(resendCount, 0);
+      handle.dispose();
+    });
+
+    testWidgets('at zero hides the timer and the whole row resends', (
+      WidgetTester tester,
+    ) async {
+      final SemanticsHandle handle = tester.ensureSemantics();
+      int resendCount = 0;
+      await pumpRow(
+        tester,
+        remaining: Duration.zero,
+        subtitle: 'Отправим новый код',
+        onResend: () => resendCount++,
+      );
+
+      expect(find.text('00:00'), findsNothing);
+      expect(find.text('Отправим новый код'), findsOneWidget);
+      expect(
+        tester.getSemantics(find.bySemanticsLabel('Отправить код повторно')),
+        isSemantics(
+          isButton: true,
+          hasEnabledState: true,
+          isEnabled: true,
+          hasTapAction: true,
+        ),
+      );
+
+      await tester.tap(find.text('Отправить код повторно'));
+      await tester.tap(find.text('Отправим новый код'));
+      await tester.tap(find.byIcon(Icons.schedule));
+      await tester.pump();
+      expect(resendCount, 3);
+      handle.dispose();
+    });
+
+    testWidgets('a subtitle alone switches to the detailed layout', (
+      WidgetTester tester,
+    ) async {
+      int resendCount = 0;
+      await pumpRow(
+        tester,
+        remaining: null,
+        leading: null,
+        subtitle: 'Отправим новый код',
+        onResend: () => resendCount++,
+      );
+
+      expect(find.byType(TextButton), findsNothing);
+      expect(find.text('Отправим новый код'), findsOneWidget);
+
+      await tester.tap(find.text('Отправим новый код'));
+      expect(resendCount, 1);
+    });
+  });
 }
 
 final class _TestApp extends StatelessWidget {

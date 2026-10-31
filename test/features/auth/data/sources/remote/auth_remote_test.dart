@@ -1,9 +1,11 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:easy_booking/core/utils/error/app_exception.dart';
+import 'package:easy_booking/core/utils/either/either.dart';
+import 'package:easy_booking/core/utils/network/interceptors/error_interceptor.dart';
+import 'package:easy_booking/core/utils/error/failure.dart';
 import 'package:easy_booking/core/utils/network/api_client.dart';
-import 'package:easy_booking/core/utils/network/auth_interceptor.dart';
+import 'package:easy_booking/core/utils/network/interceptors/auth_interceptor.dart';
 import 'package:easy_booking/core/utils/session/auth_session.dart';
 import 'package:easy_booking/core/utils/session/auth_tokens.dart';
 import 'package:easy_booking/features/auth/data/models/create_account_request_model.dart';
@@ -16,12 +18,28 @@ import '../../../../../helpers/fake_session_storage.dart';
 
 const String _phone = '+77001234567';
 
+/// The success value of [result]; fails the test on a `Left`.
+T _right<T>(Either<Failure, T> result) {
+  return switch (result) {
+    Right<Failure, T>(:final T value) => value,
+    Left<Failure, T>(:final Failure value) => throw TestFailure('$value'),
+  };
+}
+
+/// The failure of [result]; fails the test on a `Right`.
+Failure _left<T>(Either<Failure, T> result) {
+  return switch (result) {
+    Left<Failure, T>(:final Failure value) => value,
+    Right<Failure, T>() => throw TestFailure('Expected a Left'),
+  };
+}
+
 const CreateAccountRequestModel _request = CreateAccountRequestModel(
   firstName: 'Айгерим',
   lastName: 'Садыкова',
   email: 'aigerim@example.kz',
   teamName: 'Esentai Stay',
-  cityId: 'almaty',
+  city: 'almaty',
   timeZone: 'Asia/Almaty',
 );
 
@@ -36,7 +54,10 @@ void main() {
     session = AuthSession(sessionStorage: FakeSessionStorage());
     dio = Dio(BaseOptions(baseUrl: 'https://api.test'))
       ..httpClientAdapter = adapter
-      ..interceptors.add(AuthInterceptor(session: session));
+      ..interceptors.addAll(<Interceptor>[
+        AuthInterceptor(session: session),
+        const ErrorInterceptor(),
+      ]);
     remote = AuthRemoteImpl(apiClient: ApiClientImpl(dio: dio));
   });
 
@@ -51,7 +72,7 @@ void main() {
     test('posts the phone to /auth/otp/send and parses the delay', () async {
       adapter.respond(200, <String, Object?>{'resendAfterSeconds': 45});
 
-      final OtpChallengeModel model = await remote.sendCode(_phone);
+      final OtpChallengeModel model = _right(await remote.sendCode(_phone));
 
       expect(model.resendAfterSeconds, 45);
       expect(lastRequest().method, 'POST');
@@ -69,27 +90,18 @@ void main() {
       expect(lastRequest().headers, isNot(contains('Authorization')));
     });
 
-    test('an invalid object body throws ParsingException', () async {
+    test('an invalid object body is a ParsingFailure', () async {
       adapter.respond(200, <String, Object?>{'resendAfterSeconds': -1});
 
-      await expectLater(
-        remote.sendCode(_phone),
-        throwsA(isA<ParsingException>()),
-      );
+      expect(_left(await remote.sendCode(_phone)), isA<ParsingFailure>());
     });
 
-    test('an error status surfaces as a DioException', () async {
+    test('an error status is the mapped failure', () async {
       adapter.respond(422, <String, Object?>{'code': 'invalid_phone'});
 
-      await expectLater(
-        remote.sendCode(_phone),
-        throwsA(
-          isA<DioException>().having(
-            (DioException e) => e.response?.statusCode,
-            'statusCode',
-            422,
-          ),
-        ),
+      expect(
+        _left(await remote.sendCode(_phone)),
+        const ValidationFailure(code: 'invalid_phone'),
       );
     });
   });
@@ -102,9 +114,8 @@ void main() {
         'isNewUser': true,
       });
 
-      final VerifyCodeResponseModel model = await remote.verifyCode(
-        phone: _phone,
-        code: '482913',
+      final VerifyCodeResponseModel model = _right(
+        await remote.verifyCode(phone: _phone, code: '482913'),
       );
 
       expect(model.accessToken, 'access');
@@ -135,20 +146,19 @@ void main() {
       await session.signIn(const AuthTokens(accessToken: 'current'));
       adapter.respond(401, <String, Object?>{'code': 'invalid_code'});
 
-      await expectLater(
-        remote.verifyCode(phone: _phone, code: '000000'),
-        throwsA(isA<DioException>()),
+      expect(
+        _left(await remote.verifyCode(phone: _phone, code: '000000')),
+        const UnauthorizedFailure(),
       );
-
       expect(session.isAuthenticated, isTrue);
     });
 
-    test('an invalid object body throws ParsingException', () async {
+    test('an invalid object body is a ParsingFailure', () async {
       adapter.respond(200, <String, Object?>{'accessToken': ''});
 
-      await expectLater(
-        remote.verifyCode(phone: _phone, code: '482913'),
-        throwsA(isA<ParsingException>()),
+      expect(
+        _left(await remote.verifyCode(phone: _phone, code: '482913')),
+        isA<ParsingFailure>(),
       );
     });
   });
@@ -175,18 +185,23 @@ void main() {
       ]) {
         adapter.respond(201, body);
 
-        await expectLater(remote.createAccount(_request), completes);
+        expect(
+          await remote.createAccount(_request),
+          const Right<Failure, void>(null),
+        );
       }
     });
 
-    test('a 422 surfaces as a DioException', () async {
+    test('a 422 is a ValidationFailure with the field errors', () async {
       adapter.respond(422, <String, Object?>{
         'errors': <String, Object?>{'email': 'taken'},
       });
 
-      await expectLater(
-        remote.createAccount(_request),
-        throwsA(isA<DioException>()),
+      expect(
+        _left(await remote.createAccount(_request)),
+        const ValidationFailure(
+          fieldErrors: <String, String>{'email': 'taken'},
+        ),
       );
     });
   });
@@ -198,16 +213,13 @@ void main() {
       ('a string', 'ok'),
       ('a number', 42),
     ]) {
-      test('a body that is $name throws ParsingException', () async {
+      test('a body that is $name is a ParsingFailure', () async {
         adapter.respond(200, body);
 
-        await expectLater(
-          remote.sendCode(_phone),
-          throwsA(isA<ParsingException>()),
-        );
-        await expectLater(
-          remote.verifyCode(phone: _phone, code: '482913'),
-          throwsA(isA<ParsingException>()),
+        expect(_left(await remote.sendCode(_phone)), isA<ParsingFailure>());
+        expect(
+          _left(await remote.verifyCode(phone: _phone, code: '482913')),
+          isA<ParsingFailure>(),
         );
       });
     }

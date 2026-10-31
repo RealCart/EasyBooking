@@ -1,7 +1,7 @@
 import 'package:easy_booking/core/utils/either/either.dart';
 import 'package:easy_booking/core/utils/error/failure.dart';
+import 'package:easy_booking/features/auth/domain/entity/create_account_params_entity.dart';
 import 'package:easy_booking/features/auth/domain/entity/otp_challenge_entity.dart';
-import 'package:easy_booking/features/auth/domain/usecases/create_account_usecase.dart';
 
 abstract interface class AuthRepository {
   /// Sends an SMS code to [phone] (E.164). Remote only.
@@ -15,8 +15,8 @@ abstract interface class AuthRepository {
   });
 
   /// Creates the account of a new user and, on success, completes account
-  /// setup in the session. [params] must be validated and have a city.
-  Future<Either<Failure, void>> createAccount(CreateAccountParams params);
+  /// setup in the session. [params] must be validated.
+  Future<Either<Failure, void>> createAccount(CreateAccountParamsEntity params);
 
   /// Closes the session locally.
   Future<Either<Failure, void>> signOut();
