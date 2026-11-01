@@ -14,6 +14,8 @@ class AppLargeListingCard extends StatelessWidget {
     required this.details,
     required this.unitLabel,
     required this.badgeLabel,
+    this.isSaved = false,
+    this.onSavedPressed,
     this.onTap,
     super.key,
   });
@@ -25,6 +27,10 @@ class AppLargeListingCard extends StatelessWidget {
   final String details;
   final String unitLabel;
   final String badgeLabel;
+  final bool isSaved;
+
+  /// Toggles [isSaved]; the heart is hidden when `null`.
+  final VoidCallback? onSavedPressed;
   final VoidCallback? onTap;
 
   @override
@@ -74,14 +80,15 @@ class AppLargeListingCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                Positioned(
-                  top: 10,
-                  right: 10,
-                  child: AppSavedIconButton(
-                    isSaved: false,
-                    onPressed: () {},
+                if (onSavedPressed != null)
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: AppSavedIconButton(
+                      isSaved: isSaved,
+                      onPressed: onSavedPressed,
+                    ),
                   ),
-                ),
               ],
             ),
             const SizedBox(height: 10),

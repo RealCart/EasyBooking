@@ -6,6 +6,7 @@ import 'package:easy_booking/app/di/app_dependencies_provider.dart';
 import 'package:easy_booking/app/theme/app_colors.dart';
 import 'package:easy_booking/app/theme/app_typography.dart';
 import 'package:easy_booking/core/utils/error/failure.dart';
+import 'package:easy_booking/core/utils/error/field_error_message.dart';
 import 'package:easy_booking/core/utils/extensions/context_extensions.dart';
 import 'package:easy_booking/core/utils/extensions/go_router_extension.dart';
 import 'package:easy_booking/core/utils/form_validators.dart';
@@ -246,7 +247,7 @@ final class _AccountSetupScreenState extends State<AccountSetupScreen> {
                     valueLabelOf: (CityEntity city) => city.nameWithOffset,
                     sheetTexts: _citySheetTexts,
                     validator: FormValidators.selected,
-                    errorText: authFieldErrorMessage(
+                    errorText: fieldErrorMessage(
                       state.fieldErrors[AccountFields.city],
                     ),
                     enabled: !state.status.isLoading,
@@ -314,7 +315,7 @@ final class _AccountTextField extends StatelessWidget {
               controller: controller,
               focusNode: focusNode,
               validator: validator,
-              errorText: authFieldErrorMessage(value.error),
+              errorText: fieldErrorMessage(value.error),
               enabled: !value.isCreating,
               keyboardType: keyboardType,
               textInputAction: textInputAction,

@@ -35,7 +35,6 @@ class AppPhoneCountryFields extends StatelessWidget {
     super.key,
   });
 
-  static const double _fieldMinHeight = 72;
   static const double _adaptiveBreakpoint = 320;
 
   final String countryValue;
@@ -88,11 +87,28 @@ class AppPhoneCountryFields extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         spacing: AppSpacing.large,
-        children: <Widget>[_buildCountryField(isStacked: true), phoneField],
+        children: <Widget>[
+          _CountryField(
+            label: countryLabel,
+            value: countryValue,
+            isStacked: true,
+            isReadOnly: isCountryReadOnly,
+            enabled: enabled,
+            onPressed: onCountryPressed,
+          ),
+          phoneField,
+        ],
       );
     }
 
-    final Widget countryField = _buildCountryField(isStacked: false);
+    final Widget countryField = _CountryField(
+      label: countryLabel,
+      value: countryValue,
+      isStacked: false,
+      isReadOnly: isCountryReadOnly,
+      enabled: enabled,
+      onPressed: onCountryPressed,
+    );
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         if (constraints.maxWidth < _adaptiveBreakpoint) {
@@ -118,14 +134,36 @@ class AppPhoneCountryFields extends StatelessWidget {
       },
     );
   }
+}
 
-  Widget _buildCountryField({required bool isStacked}) {
-    final VoidCallback? onSelectCountry = enabled && !isCountryReadOnly
-        ? onCountryPressed
+/// The country box: tappable, or a fixed value when [isReadOnly].
+final class _CountryField extends StatelessWidget {
+  const _CountryField({
+    required this.label,
+    required this.value,
+    required this.isStacked,
+    required this.isReadOnly,
+    required this.enabled,
+    required this.onPressed,
+  });
+
+  static const double _minHeight = 72;
+
+  final String label;
+  final String value;
+
+  /// Full width: the value uses the text field size.
+  final bool isStacked;
+  final bool isReadOnly;
+  final bool enabled;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final VoidCallback? onSelectCountry = enabled && !isReadOnly
+        ? onPressed
         : null;
-    final bool isDimmed = isCountryReadOnly
-        ? !enabled
-        : onSelectCountry == null;
+    final bool isDimmed = isReadOnly ? !enabled : onSelectCountry == null;
 
     final Widget box = DecoratedBox(
       decoration: BoxDecoration(
@@ -134,7 +172,7 @@ class AppPhoneCountryFields extends StatelessWidget {
         border: .all(color: AppColors.border),
       ),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: _fieldMinHeight),
+        constraints: const BoxConstraints(minHeight: _minHeight),
         // One pixel more than the Paper padding, which includes the border.
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 13),
@@ -144,14 +182,14 @@ class AppPhoneCountryFields extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               Text(
-                countryLabel,
+                label,
                 style: AppTypography.caption.copyWith(
                   height: 18 / 12,
                   color: AppColors.secondaryText,
                 ),
               ),
               Text(
-                countryValue,
+                value,
                 // Full-width fields use the same value size as text fields.
                 style:
                     (isStacked ? AppTypography.bodyLarge : AppTypography.body)
@@ -163,12 +201,12 @@ class AppPhoneCountryFields extends StatelessWidget {
       ),
     );
 
-    if (isCountryReadOnly) {
+    if (isReadOnly) {
       return Semantics(
         container: true,
         readOnly: true,
         enabled: enabled,
-        label: '$countryLabel, $countryValue',
+        label: '$label, $value',
         child: ExcludeSemantics(
           child: Opacity(opacity: isDimmed ? 0.4 : 1, child: box),
         ),
@@ -178,7 +216,7 @@ class AppPhoneCountryFields extends StatelessWidget {
     return Semantics(
       button: true,
       enabled: onSelectCountry != null,
-      label: '$countryLabel, $countryValue',
+      label: '$label, $value',
       onTap: onSelectCountry,
       child: ExcludeSemantics(
         child: Opacity(

@@ -1,7 +1,9 @@
 import 'package:easy_booking/app/constants/assets/app_assets.dart';
 import 'package:easy_booking/core/utils/date_formatter.dart';
 import 'package:easy_booking/core/utils/plural.dart';
-import 'package:easy_booking/features/home/presentation/mock/home_mock_data.dart';
+import 'package:easy_booking/features/home/domain/entity/calendar_sync_entity.dart';
+import 'package:easy_booking/features/home/domain/entity/home_overview_entity.dart';
+import 'package:easy_booking/features/home/domain/entity/home_stay_entity.dart';
 
 extension HomeStayScopeLabels on HomeStayScope {
   /// `Заезды`
@@ -43,7 +45,7 @@ extension HomeStayStatusLabels on HomeStayStatus {
   }
 }
 
-extension HomeStayLabels on HomeStayMock {
+extension HomeStayLabels on HomeStayEntity {
   /// `Айжан · 3 ночи`
   String get stayDetails {
     final String nightsLabel = Plural.format(
@@ -67,7 +69,7 @@ extension HomeStayLabels on HomeStayMock {
   }
 }
 
-extension HomeSyncLabels on HomeSyncMock {
+extension CalendarSyncLabels on CalendarSyncEntity {
   /// `Календари обновлены в 09:38`
   String get title => 'Календари обновлены в ${DateFormatter.time(updatedAt)}';
 

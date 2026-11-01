@@ -1,10 +1,9 @@
-import 'package:easy_booking/app/constants/assets/app_assets.dart';
-import 'package:easy_booking/core/presentation/widgets/actions/app_icon_button.dart';
 import 'package:flutter/material.dart';
 
 import 'package:easy_booking/app/theme/app_colors.dart';
 import 'package:easy_booking/app/theme/app_radii.dart';
 import 'package:easy_booking/app/theme/app_typography.dart';
+import 'package:easy_booking/core/presentation/widgets/actions/app_icon_button.dart';
 
 class AppPropertyRow extends StatelessWidget {
   const AppPropertyRow({
@@ -14,6 +13,8 @@ class AppPropertyRow extends StatelessWidget {
     required this.price,
     required this.unitLabel,
     required this.status,
+    this.isSaved = false,
+    this.onSavedPressed,
     this.onTap,
     this.showDivider = true,
     super.key,
@@ -25,6 +26,10 @@ class AppPropertyRow extends StatelessWidget {
   final String price;
   final String unitLabel;
   final String status;
+  final bool isSaved;
+
+  /// Toggles [isSaved]; the heart is hidden when `null`.
+  final VoidCallback? onSavedPressed;
   final VoidCallback? onTap;
   final bool showDivider;
 
@@ -45,10 +50,7 @@ class AppPropertyRow extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppRadii.media),
               child: SizedBox.square(
                 dimension: 92,
-                child: Image.asset(
-                  AppAssets.images.propertyLivingRoomBlue,
-                  fit: BoxFit.cover,
-                ),
+                child: Image.asset(imageUrl, fit: BoxFit.cover),
               ),
             ),
             const SizedBox(width: 16),
@@ -100,19 +102,21 @@ class AppPropertyRow extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 8),
-            ConstrainedBox(
-              constraints: const BoxConstraints(
-                minWidth: 44,
-                minHeight: 44,
-              ),
-              child: Center(
-                child: AppSavedIconButton(
-                  isSaved: false,
-                  onPressed: () {},
+            if (onSavedPressed != null) ...<Widget>[
+              const SizedBox(width: 8),
+              ConstrainedBox(
+                constraints: const BoxConstraints(
+                  minWidth: 44,
+                  minHeight: 44,
+                ),
+                child: Center(
+                  child: AppSavedIconButton(
+                    isSaved: isSaved,
+                    onPressed: onSavedPressed,
+                  ),
                 ),
               ),
-            ),
+            ],
           ],
         ),
       ),

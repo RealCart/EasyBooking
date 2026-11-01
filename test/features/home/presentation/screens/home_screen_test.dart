@@ -1,11 +1,103 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:easy_booking/app/theme/app_theme.dart';
 import 'package:easy_booking/core/presentation/widgets/content/app_arrival_card.dart';
+import 'package:easy_booking/core/presentation/widgets/feedback/app_skeleton.dart';
+import 'package:easy_booking/core/utils/either/either.dart';
+import 'package:easy_booking/core/utils/error/failure.dart';
+import 'package:easy_booking/features/home/domain/entity/home_overview_entity.dart';
+import 'package:easy_booking/features/home/domain/usecases/get_home_overview_usecase.dart';
+import 'package:easy_booking/features/home/presentation/bloc/home_bloc/home_bloc.dart';
 import 'package:easy_booking/features/home/presentation/screens/home_screen.dart';
 
+import '../../../../helpers/fake_home_repository.dart';
 import '../../../../helpers/router_harness.dart';
 
+/// Pumps the screen under its own [HomeBloc] over [repository], started as
+/// `wrappedRoute` does.
+Future<void> _pumpScreen(
+  WidgetTester tester,
+  FakeHomeRepository repository,
+) async {
+  await tester.pumpWidget(
+    MaterialApp(
+      theme: AppTheme.light,
+      home: BlocProvider<HomeBloc>(
+        create: (_) => HomeBloc(
+          getHomeOverview: GetHomeOverviewUsecase(repository),
+        )..add(const HomeOverviewRequested()),
+        child: const HomeScreen(),
+      ),
+    ),
+  );
+}
+
 void main() {
+  group('HomeScreen states', () {
+    testWidgets('the first load shows a skeleton', (WidgetTester tester) async {
+      final FakeHomeRepository repository = FakeHomeRepository()
+        ..holdOverview = true;
+
+      await _pumpScreen(tester, repository);
+      await tester.pump();
+
+      expect(find.byType(AppSkeleton), findsWidgets);
+      expect(find.byType(AppArrivalCard), findsNothing);
+      expect(find.text('Сегодня'), findsOneWidget);
+    });
+
+    testWidgets('a failed load offers a retry that shows the day', (
+      WidgetTester tester,
+    ) async {
+      final FakeHomeRepository repository = FakeHomeRepository()
+        ..overviewResult = const Left<Failure, HomeOverviewEntity>(
+          ConnectionFailure(),
+        );
+
+      await _pumpScreen(tester, repository);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Не удалось загрузить день'), findsOneWidget);
+      expect(find.text('Нет подключения к интернету'), findsOneWidget);
+      expect(find.byType(AppArrivalCard), findsNothing);
+
+      repository.overviewResult = Right<Failure, HomeOverviewEntity>(
+        testHomeOverview(),
+      );
+      await tester.tap(find.text('Повторить'));
+      await tester.pumpAndSettle();
+
+      expect(repository.overviewCount, 2);
+      expect(find.text('Не удалось загрузить день'), findsNothing);
+      expect(find.byType(AppArrivalCard), findsOneWidget);
+      expect(find.text('Заезды · 1'), findsOneWidget);
+    });
+
+    testWidgets('a failed refresh keeps the day and shows a snackbar', (
+      WidgetTester tester,
+    ) async {
+      final FakeHomeRepository repository = FakeHomeRepository();
+      await _pumpScreen(tester, repository);
+      await tester.pumpAndSettle();
+      repository.overviewResult = const Left<Failure, HomeOverviewEntity>(
+        ConnectionFailure(),
+      );
+
+      await tester.fling(
+        find.text('Сегодня'),
+        const Offset(0, 400),
+        1000,
+      );
+      await tester.pumpAndSettle();
+
+      expect(repository.overviewCount, 2);
+      expect(find.text('Нет подключения к интернету'), findsOneWidget);
+      expect(find.byType(AppArrivalCard), findsOneWidget);
+    });
+  });
+
   group('HomeScreen', () {
     Future<void> tapVisible(WidgetTester tester, Finder finder) async {
       await tester.ensureVisible(finder);
@@ -20,6 +112,7 @@ void main() {
       await RouterHarness.pump(tester);
 
       expect(find.byType(HomeScreen), findsOneWidget);
+      expect(find.text('Четверг, 22 октября'), findsOneWidget);
       expect(find.text('Заезды · 2'), findsOneWidget);
       expect(find.text('Выезды · 1'), findsOneWidget);
       expect(find.text('Проживают · 3'), findsOneWidget);
@@ -58,8 +151,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(AppArrivalCard), findsNWidgets(3));
-      expect(find.textContaining('Мадина'), findsOneWidget);
-      expect(find.textContaining('до '), findsNWidgets(3));
+      expect(find.text('Мадина · 3 ночи'), findsOneWidget);
+      expect(find.text('до 24 окт'), findsOneWidget);
     });
 
     testWidgets('a stay card opens its property', (WidgetTester tester) async {
@@ -85,7 +178,7 @@ void main() {
 
       await tapVisible(tester, find.text('Договор Данияра'));
 
-      expect(harness.location, '/contracts/samal-daniyar');
+      expect(harness.location, '/contracts/eb-1052');
     });
 
     testWidgets('remind shows a confirmation and stays on today', (

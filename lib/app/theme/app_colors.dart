@@ -18,6 +18,10 @@ abstract final class AppColors {
   static const Color warningSurface = Color(0xFFFFF4E5);
   static const Color error = Color(0xFFC13515);
   static const Color errorSurface = Color(0xFFFFF0EC);
+
+  /// Background and border of a list row that needs urgent attention.
+  static const Color errorHighlight = Color(0xFFFFF8F6);
+  static const Color errorHighlightBorder = Color(0xFFF2E4DF);
   static const Color info = Color(0xFF306A9B);
   static const Color infoSurface = Color(0xFFEDF6FF);
 

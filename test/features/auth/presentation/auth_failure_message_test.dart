@@ -92,27 +92,4 @@ void main() {
       );
     });
   });
-
-  group('authFieldErrorMessage', () {
-    test('returns null for no error', () {
-      expect(authFieldErrorMessage(null), isNull);
-      expect(authFieldErrorMessage(''), isNull);
-    });
-
-    test('maps the field codes', () {
-      expect(
-        authFieldErrorMessage(AuthErrorCodes.required),
-        'Заполните поле',
-      );
-      expect(
-        authFieldErrorMessage(AuthErrorCodes.invalidEmail),
-        'Проверьте адрес почты',
-      );
-    });
-
-    test('maps any other value, such as a server text, to a generic text', () {
-      expect(authFieldErrorMessage('taken'), 'Проверьте поле');
-      expect(authFieldErrorMessage('Email already used'), 'Проверьте поле');
-    });
-  });
 }

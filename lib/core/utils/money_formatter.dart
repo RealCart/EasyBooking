@@ -13,6 +13,20 @@ abstract final class MoneyFormatter {
     return '${tenge(amount)}$_groupSeparator/ ночь';
   }
 
+  /// Reads a whole tenge amount typed by the user (`42 500`, `42 500 ₸`).
+  /// Returns `null` when [text] has anything other than digits, spaces,
+  /// and the tenge sign, or no digits at all.
+  static int? tryParse(String? text) {
+    if (text == null) {
+      return null;
+    }
+    final String digits = text.replaceAll(RegExp(r'[\s₸]'), '');
+    if (!RegExp(r'^\d+$').hasMatch(digits)) {
+      return null;
+    }
+    return int.tryParse(digits);
+  }
+
   /// `1 250 000`: digits grouped by three.
   static String group(int amount) {
     final String digits = amount.abs().toString();

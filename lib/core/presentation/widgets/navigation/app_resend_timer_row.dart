@@ -23,8 +23,6 @@ final class AppResendTimerRow extends StatelessWidget {
     super.key,
   });
 
-  static const double _leadingSlotWidth = 32;
-
   /// Announced to screen readers with the action.
   final String prompt;
   final String actionLabel;
@@ -44,19 +42,51 @@ final class AppResendTimerRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Widget row = leading != null || subtitle != null
-        ? _buildDetailed()
-        : _buildCompact();
+    final Duration? waitingTime = _waitingTime;
+    final Widget? leading = this.leading;
+    final String? subtitle = this.subtitle;
     return DecoratedBox(
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: AppColors.border)),
       ),
-      child: row,
+      child: leading != null || subtitle != null
+          ? _DetailedResendRow(
+              prompt: prompt,
+              actionLabel: actionLabel,
+              waitingTime: waitingTime,
+              leading: leading,
+              subtitle: subtitle,
+              onResend: onResend,
+            )
+          : _CompactResendRow(
+              prompt: prompt,
+              actionLabel: actionLabel,
+              waitingTime: waitingTime,
+              onResend: onResend,
+            ),
     );
   }
+}
 
-  Widget _buildCompact() {
-    final Duration? waitingTime = _waitingTime;
+/// The compact text action with the countdown on the right.
+final class _CompactResendRow extends StatelessWidget {
+  const _CompactResendRow({
+    required this.prompt,
+    required this.actionLabel,
+    required this.waitingTime,
+    required this.onResend,
+  });
+
+  final String prompt;
+  final String actionLabel;
+
+  /// Time left before resend is allowed, or `null` when it is allowed.
+  final Duration? waitingTime;
+  final VoidCallback onResend;
+
+  @override
+  Widget build(BuildContext context) {
+    final Duration? waitingTime = this.waitingTime;
     final bool isWaiting = waitingTime != null;
     return Semantics(
       label: prompt,
@@ -92,9 +122,34 @@ final class AppResendTimerRow extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildDetailed() {
-    final Duration? waitingTime = _waitingTime;
+/// The SMS screen layout: an icon slot, the title with a subtitle, and the
+/// countdown in the text color.
+final class _DetailedResendRow extends StatelessWidget {
+  const _DetailedResendRow({
+    required this.prompt,
+    required this.actionLabel,
+    required this.waitingTime,
+    required this.leading,
+    required this.subtitle,
+    required this.onResend,
+  });
+
+  static const double _leadingSlotWidth = 32;
+
+  final String prompt;
+  final String actionLabel;
+
+  /// Time left before resend is allowed, or `null` when it is allowed.
+  final Duration? waitingTime;
+  final Widget? leading;
+  final String? subtitle;
+  final VoidCallback onResend;
+
+  @override
+  Widget build(BuildContext context) {
+    final Duration? waitingTime = this.waitingTime;
     final bool isWaiting = waitingTime != null;
     final Widget? leading = this.leading;
     final String? subtitle = this.subtitle;
@@ -160,11 +215,12 @@ final class AppResendTimerRow extends StatelessWidget {
       ),
     );
   }
+}
 
-  String _formatDuration(Duration duration) {
-    final int totalSeconds = duration.inSeconds;
-    final int minutes = totalSeconds ~/ Duration.secondsPerMinute;
-    final int seconds = totalSeconds % Duration.secondsPerMinute;
-    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-  }
+/// «00:28».
+String _formatDuration(Duration duration) {
+  final int totalSeconds = duration.inSeconds;
+  final int minutes = totalSeconds ~/ Duration.secondsPerMinute;
+  final int seconds = totalSeconds % Duration.secondsPerMinute;
+  return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
 }

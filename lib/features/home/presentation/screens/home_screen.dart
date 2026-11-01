@@ -1,137 +1,208 @@
+import 'package:easy_booking/core/presentation/widgets/actions/app_icon_button.dart';
+import 'package:easy_booking/core/presentation/widgets/navigation/app_root_header.dart';
+import 'package:easy_booking/core/utils/date_formatter.dart';
+import 'package:easy_booking/core/utils/logger/app_logger.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:easy_booking/app/constants/assets/app_assets.dart';
+import 'package:easy_booking/app/di/app_dependencies.dart';
+import 'package:easy_booking/app/di/app_dependencies_provider.dart';
 import 'package:easy_booking/app/router/app_routes.dart';
 import 'package:easy_booking/app/theme/app_sizes.dart';
 import 'package:easy_booking/app/theme/app_spacing.dart';
-import 'package:easy_booking/core/presentation/widgets/actions/app_icon_button.dart';
 import 'package:easy_booking/core/presentation/widgets/content/app_sync_summary.dart';
-import 'package:easy_booking/core/presentation/widgets/navigation/app_root_header.dart';
+import 'package:easy_booking/core/presentation/widgets/feedback/app_empty_state.dart';
 import 'package:easy_booking/core/presentation/widgets/navigation/app_scope_filter.dart';
 import 'package:easy_booking/core/presentation/widgets/navigation/app_section_header.dart';
-import 'package:easy_booking/core/utils/date_formatter.dart';
+import 'package:easy_booking/core/utils/error/failure.dart';
+import 'package:easy_booking/core/utils/error/failure_message.dart';
 import 'package:easy_booking/core/utils/extensions/context_extensions.dart';
-import 'package:easy_booking/features/home/presentation/mock/home_mock_data.dart';
+import 'package:easy_booking/core/utils/extensions/go_router_extension.dart';
+import 'package:easy_booking/features/home/domain/entity/home_overview_entity.dart';
+import 'package:easy_booking/features/home/domain/entity/home_stay_entity.dart';
+import 'package:easy_booking/features/home/domain/entity/home_task_entity.dart';
+import 'package:easy_booking/features/home/domain/usecases/get_home_overview_usecase.dart';
+import 'package:easy_booking/features/home/presentation/bloc/home_bloc/home_bloc.dart';
 import 'package:easy_booking/features/home/presentation/widgets/home_labels.dart';
+import 'package:easy_booking/features/home/presentation/widgets/home_skeleton.dart';
 import 'package:easy_booking/features/home/presentation/widgets/home_stays_row.dart';
 import 'package:easy_booking/features/home/presentation/widgets/home_task_row.dart';
 
 /// Screen 01 «Сегодня»: today's arrivals, departures, and current guests,
 /// the tasks before arrival, and the calendar sync status.
 ///
-/// Shows [HomeMockData] until the home domain and data layers exist.
-final class HomeScreen extends StatefulWidget {
+/// Provides its own [HomeBloc] through [wrappedRoute].
+final class HomeScreen extends StatelessWidget implements GoRouterWrapper {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-final class _HomeScreenState extends State<HomeScreen> {
-  late final HomeMockData _data;
-  late HomeStayScope _scope;
-
-  @override
-  void initState() {
-    super.initState();
-    _data = HomeMockData.forDay(DateTime.now());
-    _scope = HomeStayScope.arrivals;
+  Widget wrappedRoute(BuildContext context) {
+    final AppDependencies dependencies = AppDependenciesProvider.of(context);
+    return BlocProvider<HomeBloc>(
+      create: (_) => HomeBloc(
+        getHomeOverview: dependencies.getDep<GetHomeOverviewUsecase>(),
+      )..add(const HomeOverviewRequested()),
+      child: this,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final HomeBloc bloc = context.read<HomeBloc>();
+
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: AppSpacing.xLarge),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              AppRootHeader(
-                title: 'Сегодня',
-                subtitle: DateFormatter.weekdayDayMonth(_data.date),
-                action: AppIconButton(
-                  semanticLabel: 'Уведомления',
-                  onPressed: () =>
-                      context.pushNamed(AppRoutes.notifications.name),
-                  icon: SvgPicture.asset(
-                    AppAssets.icons.notification,
-                    width: AppSizes.iconAppBar,
-                    height: AppSizes.iconAppBar,
+        child: BlocConsumer<HomeBloc, HomeState>(
+          listenWhen: (HomeState previous, HomeState current) =>
+              previous.loadStatus != current.loadStatus &&
+              current.loadStatus.isFailure &&
+              current.overview != null,
+          listener: (BuildContext context, HomeState state) {
+            final Failure? failure = state.loadFailure;
+            if (failure != null) {
+              context.showAppSnackbar(failure.userMessage);
+            }
+          },
+          buildWhen: (prev, curr) => prev.loadStatus != curr.loadStatus,
+          builder: (BuildContext context, HomeState state) {
+            AppLogger.warning('First upper rebuild');
+            final Failure? failure = state.loadFailure;
+
+            return RefreshIndicator.adaptive(
+              onRefresh: () {
+                bloc.add(const HomeOverviewRequested());
+                return bloc.stream.firstWhere(
+                  (HomeState state) => !state.loadStatus.isLoading,
+                );
+              },
+              child: ListView(
+                children: [
+                  AppRootHeader(
+                    title: 'Сегодня',
+                    subtitle: DateFormatter.weekdayDayMonth(DateTime.now()),
+                    action: AppIconButton(
+                      semanticLabel: 'Уведомления',
+                      onPressed: () =>
+                          context.pushNamed(AppRoutes.notifications.name),
+                      icon: SvgPicture.asset(
+                        AppAssets.icons.notification,
+                        width: AppSizes.iconAppBar,
+                        height: AppSizes.iconAppBar,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              AppScopeFilter(
-                labels: <String>[
-                  for (final HomeStayScope scope in HomeStayScope.values)
-                    '${scope.label} · ${_data.staysFor(scope).length}',
-                ],
-                selectedIndex: _scope.index,
-                onSelected: (int index) {
-                  setState(() => _scope = HomeStayScope.values[index]);
-                },
-              ),
-              const SizedBox(height: AppSpacing.xLarge),
-              HomeStaysRow(
-                scope: _scope,
-                stays: _data.staysFor(_scope),
-                onStaySelected: _openProperty,
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSizes.pageGutter,
-                  28,
-                  AppSizes.pageGutter,
-                  0,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    AppSectionHeader(
-                      title: 'Перед заездом',
-                      actionLabel: 'Все задачи',
-                      onAction: () => context.showAppSnackbar(
-                        'Список задач скоро появится',
+                  if (state.overview != null) ...[
+                    BlocBuilder<HomeBloc, HomeState>(
+                      builder: (context, state) {
+                        AppLogger.warning('Second upper rebuild');
+                        final HomeOverviewEntity overview = state.overview!;
+
+                        return Column(
+                          crossAxisAlignment: .start,
+                          children: [
+                            AppScopeFilter(
+                              labels: <String>[
+                                for (final HomeStayScope scope
+                                    in HomeStayScope.values)
+                                  '${scope.label} · ${overview.staysFor(scope).length}',
+                              ],
+                              selectedIndex: state.scope.index,
+                              onSelected: (int index) {
+                                bloc.add(
+                                  HomeScopeSelected(
+                                    HomeStayScope.values[index],
+                                  ),
+                                );
+                              },
+                            ),
+                            const SizedBox(height: AppSpacing.xLarge),
+                            HomeStaysRow(
+                              scope: state.scope,
+                              stays: state.stays,
+                              onStaySelected: (HomeStayEntity stay) =>
+                                  _openProperty(context, stay.propertyId),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSizes.pageGutter,
+                        28,
+                        AppSizes.pageGutter,
+                        0,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: <Widget>[
+                          AppSectionHeader(
+                            title: 'Перед заездом',
+                            actionLabel: 'Все задачи',
+                            onAction: () => context.showAppSnackbar(
+                              'Список задач скоро появится',
+                            ),
+                          ),
+                          for (final HomeTaskEntity task
+                              in state.overview!.tasks)
+                            HomeTaskRow(
+                              task: task,
+                              onTap: () => _openTask(context, task),
+                              onRemind: () => context.showAppSnackbar(
+                                'Напоминание отправлено',
+                              ),
+                            ),
+                          const SizedBox(height: AppSpacing.xLarge),
+                          AppSyncSummary(
+                            title: state.overview!.sync.title,
+                            subtitle: state.overview!.sync.subtitle,
+                            // Channels live in the Calendar tab, so switch to it.
+                            onTap: () =>
+                                context.goNamed(AppRoutes.channels.name),
+                          ),
+                        ],
                       ),
                     ),
-                    for (final HomeTaskMock task in _data.tasks)
-                      HomeTaskRow(
-                        task: task,
-                        onTap: () => _openTask(task),
-                        onRemind: () => context.showAppSnackbar(
-                          'Напоминание отправлено',
+                  ] else ...[
+                    if (failure != null)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSizes.pageGutter,
                         ),
-                      ),
-                    const SizedBox(height: AppSpacing.xLarge),
-                    AppSyncSummary(
-                      title: _data.sync.title,
-                      subtitle: _data.sync.subtitle,
-                      // Channels live in the Calendar tab, so switch to it.
-                      onTap: () => context.goNamed(AppRoutes.channels.name),
-                    ),
+                        child: AppEmptyState(
+                          title: 'Не удалось загрузить день',
+                          message: failure.userMessage,
+                          icon: SvgPicture.asset(AppAssets.icons.alertCircle),
+                          actionLabel: 'Повторить',
+                          onAction: () => context.read<HomeBloc>().add(
+                            const HomeOverviewRequested(),
+                          ),
+                        ),
+                      )
+                    else
+                      const HomeSkeleton(),
                   ],
-                ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
   }
 
-  void _openProperty(HomeStayMock stay) {
+  void _openProperty(BuildContext context, String propertyId) {
     context.pushNamed(
       AppRoutes.property.name,
-      pathParameters: <String, String>{
-        AppRoutes.propertyIdParam: stay.propertyId,
-      },
+      pathParameters: <String, String>{AppRoutes.propertyIdParam: propertyId},
     );
   }
 
-  void _openTask(HomeTaskMock task) {
+  void _openTask(BuildContext context, HomeTaskEntity task) {
     switch (task.kind) {
       case HomeTaskKind.contract:
         context.pushNamed(
@@ -141,12 +212,7 @@ final class _HomeScreenState extends State<HomeScreen> {
           },
         );
       case HomeTaskKind.preparation:
-        context.pushNamed(
-          AppRoutes.property.name,
-          pathParameters: <String, String>{
-            AppRoutes.propertyIdParam: task.targetId,
-          },
-        );
+        _openProperty(context, task.targetId);
     }
   }
 }

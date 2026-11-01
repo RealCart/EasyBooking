@@ -23,7 +23,10 @@ class AppIconButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool isDisabled = onPressed == null;
 
+    // A container, so the label stays on this button instead of merging into
+    // a header title next to it.
     return Semantics(
+      container: true,
       button: true,
       enabled: !isDisabled,
       label: semanticLabel,
@@ -53,12 +56,16 @@ class AppIconButton extends StatelessWidget {
                 CircleBorder(),
               ),
             ),
-            icon: IconTheme(
-              data: IconThemeData(
-                color: isSelected ? AppColors.onAccent : AppColors.text,
-                size: AppSizes.iconAction,
+            // [semanticLabel] names the button; an SVG icon would otherwise
+            // merge its own empty image label into it.
+            icon: ExcludeSemantics(
+              child: IconTheme(
+                data: IconThemeData(
+                  color: isSelected ? AppColors.onAccent : AppColors.text,
+                  size: AppSizes.iconAction,
+                ),
+                child: icon,
               ),
-              child: icon,
             ),
           ),
         ),

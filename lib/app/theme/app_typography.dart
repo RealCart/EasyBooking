@@ -19,10 +19,37 @@ abstract final class AppTypography {
     letterSpacing: -0.65,
   );
 
+  /// Titles of detail and result screens (Paper: 24 / 30, semibold).
+  static const TextStyle smallScreenTitle = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 24,
+    height: 30 / 24,
+    fontWeight: FontWeight.w600,
+    letterSpacing: -0.6,
+  );
+
+  /// Large figures, names and initials (Paper: 22 / 28, semibold).
+  static const TextStyle largeTitle = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 22,
+    height: 28 / 22,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0,
+  );
+
   static const TextStyle sectionTitle = TextStyle(
     fontFamily: fontFamily,
     fontSize: 18,
     height: 24 / 18,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0,
+  );
+
+  /// Titles of list rows and tiles (Paper: 15 / 18, semibold).
+  static const TextStyle rowTitle = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 15,
+    height: 18 / 15,
     fontWeight: FontWeight.w600,
     letterSpacing: 0,
   );

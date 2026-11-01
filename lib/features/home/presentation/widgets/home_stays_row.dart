@@ -4,7 +4,8 @@ import 'package:easy_booking/app/theme/app_sizes.dart';
 import 'package:easy_booking/app/theme/app_spacing.dart';
 import 'package:easy_booking/core/presentation/widgets/content/app_arrival_card.dart';
 import 'package:easy_booking/core/presentation/widgets/feedback/app_empty_state.dart';
-import 'package:easy_booking/features/home/presentation/mock/home_mock_data.dart';
+import 'package:easy_booking/features/home/domain/entity/home_overview_entity.dart';
+import 'package:easy_booking/features/home/domain/entity/home_stay_entity.dart';
 import 'package:easy_booking/features/home/presentation/widgets/home_labels.dart';
 
 /// Horizontally scrolling stay cards of one [scope]. Two cards fit the
@@ -20,8 +21,8 @@ final class HomeStaysRow extends StatelessWidget {
   static const double _cardGap = AppSpacing.large;
 
   final HomeStayScope scope;
-  final List<HomeStayMock> stays;
-  final ValueChanged<HomeStayMock> onStaySelected;
+  final List<HomeStayEntity> stays;
+  final ValueChanged<HomeStayEntity> onStaySelected;
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +57,7 @@ final class HomeStaysRow extends StatelessWidget {
                     time: stays[index].badgeFor(scope),
                     propertyName: stays[index].propertyName,
                     stayDetails: stays[index].stayDetails,
-                    imageUrl: stays[index].imagePath,
+                    imageUrl: stays[index].imageUrl,
                     status: stays[index].status.label,
                     statusIconPath: stays[index].status.iconPath,
                     onTap: () => onStaySelected(stays[index]),

@@ -24,4 +24,22 @@ abstract final class Validators {
     return value.length == otpLength &&
         PhoneNumber.digitsOnly(value).length == otpLength;
   }
+
+  /// A Kazakhstan IIN: 12 digits. Spaces are ignored.
+  static bool isValidIin(String value) => _digits(12).hasMatch(_compact(value));
+
+  /// An identity card number: 9 digits. Spaces are ignored.
+  static bool isValidIdNumber(String value) {
+    return _digits(9).hasMatch(_compact(value));
+  }
+
+  /// Whether [value] is within [min] and [max], both inclusive. A missing
+  /// bound is not checked.
+  static bool isInRange(num value, {num? min, num? max}) {
+    return (min == null || value >= min) && (max == null || value <= max);
+  }
+
+  static RegExp _digits(int count) => RegExp('^\\d{$count}\$');
+
+  static String _compact(String value) => value.replaceAll(RegExp(r'\s'), '');
 }

@@ -30,17 +30,3 @@ extension AuthFailureMessage on Failure {
     };
   }
 }
-
-/// Text for an `AccountSetupState.fieldErrors` value, or `null` when the
-/// field has no error. Server texts are not shown as is because their
-/// wording is not controlled by the app.
-String? authFieldErrorMessage(String? code) {
-  if (code == null || code.isEmpty) {
-    return null;
-  }
-  return switch (code) {
-    AuthErrorCodes.required => FormValidators.requiredMessage,
-    AuthErrorCodes.invalidEmail => FormValidators.invalidEmailMessage,
-    _ => 'Проверьте поле',
-  };
-}

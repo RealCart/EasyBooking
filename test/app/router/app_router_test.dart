@@ -4,13 +4,41 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:easy_booking/app/router/app_router.dart';
 import 'package:easy_booking/app/router/app_routes.dart';
 import 'package:easy_booking/app/router/route_not_found_screen.dart';
-import 'package:easy_booking/app/router/route_placeholder_screen.dart';
 import 'package:easy_booking/features/auth/data/models/verify_code_response_model.dart';
 import 'package:easy_booking/features/auth/domain/entity/kazakhstan_cities.dart';
 import 'package:easy_booking/features/auth/presentation/screens/account_setup_screen.dart';
 import 'package:easy_booking/features/auth/presentation/screens/login_screen.dart';
 import 'package:easy_booking/features/auth/presentation/screens/verify_code_screen.dart';
+import 'package:easy_booking/features/bookings/presentation/screens/booking_screen.dart';
+import 'package:easy_booking/features/bookings/presentation/screens/new_booking_screen.dart';
+import 'package:easy_booking/features/calendar/presentation/screens/calendar_conflict_screen.dart';
+import 'package:easy_booking/features/calendar/presentation/screens/calendar_screen.dart';
+import 'package:easy_booking/features/calendar/presentation/screens/channel_screen.dart';
+import 'package:easy_booking/features/calendar/presentation/screens/channels_screen.dart';
+import 'package:easy_booking/features/calendar/presentation/screens/occupancy_screen.dart';
+import 'package:easy_booking/features/contracts/presentation/screens/contract_screen.dart';
+import 'package:easy_booking/features/contracts/presentation/screens/contract_send_screen.dart';
+import 'package:easy_booking/features/contracts/presentation/screens/contract_status_screen.dart';
+import 'package:easy_booking/features/guests/presentation/screens/guest_screen.dart';
+import 'package:easy_booking/features/guests/presentation/screens/guests_screen.dart';
 import 'package:easy_booking/features/home/presentation/screens/home_screen.dart';
+import 'package:easy_booking/features/notifications/presentation/screens/notifications_screen.dart';
+import 'package:easy_booking/features/profile/presentation/screens/billing_screen.dart';
+import 'package:easy_booking/features/profile/presentation/screens/edit_profile_screen.dart';
+import 'package:easy_booking/features/profile/presentation/screens/help_screen.dart';
+import 'package:easy_booking/features/profile/presentation/screens/notification_settings_screen.dart';
+import 'package:easy_booking/features/profile/presentation/screens/profile_screen.dart';
+import 'package:easy_booking/features/profile/presentation/screens/security_screen.dart';
+import 'package:easy_booking/features/profile/presentation/screens/team_screen.dart';
+import 'package:easy_booking/features/properties/presentation/screens/add_property_channels_screen.dart';
+import 'package:easy_booking/features/properties/presentation/screens/add_property_screen.dart';
+import 'package:easy_booking/features/properties/presentation/screens/add_property_terms_screen.dart';
+import 'package:easy_booking/features/properties/presentation/screens/favorite_properties_screen.dart';
+import 'package:easy_booking/features/properties/presentation/screens/properties_screen.dart';
+import 'package:easy_booking/features/properties/presentation/screens/property_bookings_screen.dart';
+import 'package:easy_booking/features/properties/presentation/screens/property_ready_screen.dart';
+import 'package:easy_booking/features/properties/presentation/screens/property_screen.dart';
+import 'package:easy_booking/features/properties/presentation/screens/property_settings_screen.dart';
 
 import '../../helpers/router_harness.dart';
 
@@ -47,10 +75,11 @@ final class _RouteCase {
   const _RouteCase(
     this.route,
     this.location, {
+    required this.screen,
     this.pathParameters = const <String, String>{},
     this.keepsNavigation = false,
     this.canNavigateSignedIn = true,
-    this.screen = RoutePlaceholderScreen,
+    this.landsOn,
   });
 
   final AppRoutes route;
@@ -63,6 +92,10 @@ final class _RouteCase {
 
   /// Auth routes redirect away from a signed-in user who finished setup.
   final bool canNavigateSignedIn;
+
+  /// Where opening [location] directly ends up, when the screen sends the
+  /// user elsewhere; [location] otherwise.
+  final String? landsOn;
 }
 
 const Map<String, String> _property = <String, String>{
@@ -70,12 +103,23 @@ const Map<String, String> _property = <String, String>{
 };
 
 const List<_RouteCase> _routeCases = <_RouteCase>[
-  _RouteCase(AppRoutes.login, '/login', canNavigateSignedIn: false),
-  _RouteCase(AppRoutes.verifyCode, '/login/verify', canNavigateSignedIn: false),
+  _RouteCase(
+    AppRoutes.login,
+    '/login',
+    canNavigateSignedIn: false,
+    screen: LoginScreen,
+  ),
+  _RouteCase(
+    AppRoutes.verifyCode,
+    '/login/verify',
+    canNavigateSignedIn: false,
+    screen: VerifyCodeScreen,
+  ),
   _RouteCase(
     AppRoutes.accountSetup,
     '/account-setup',
     canNavigateSignedIn: false,
+    screen: AccountSetupScreen,
   ),
   _RouteCase(
     AppRoutes.today,
@@ -83,83 +127,175 @@ const List<_RouteCase> _routeCases = <_RouteCase>[
     keepsNavigation: true,
     screen: HomeScreen,
   ),
-  _RouteCase(AppRoutes.calendar, '/calendar', keepsNavigation: true),
+  _RouteCase(
+    AppRoutes.calendar,
+    '/calendar',
+    keepsNavigation: true,
+    screen: CalendarScreen,
+  ),
   _RouteCase(
     AppRoutes.occupancy,
     '/calendar/occupancy',
     keepsNavigation: true,
+    screen: OccupancyScreen,
   ),
-  _RouteCase(AppRoutes.channels, '/calendar/channels', keepsNavigation: true),
+  _RouteCase(
+    AppRoutes.channels,
+    '/calendar/channels',
+    keepsNavigation: true,
+    screen: ChannelsScreen,
+  ),
   _RouteCase(
     AppRoutes.channel,
     '/calendar/channels/c1',
     pathParameters: <String, String>{AppRoutes.channelIdParam: 'c1'},
+    screen: ChannelScreen,
   ),
-  _RouteCase(AppRoutes.properties, '/properties', keepsNavigation: true),
+  _RouteCase(
+    AppRoutes.properties,
+    '/properties',
+    keepsNavigation: true,
+    screen: PropertiesScreen,
+  ),
   _RouteCase(
     AppRoutes.favoriteProperties,
     '/properties/favorites',
     keepsNavigation: true,
+    screen: FavoritePropertiesScreen,
   ),
-  _RouteCase(AppRoutes.property, '/properties/p1', pathParameters: _property),
+  _RouteCase(
+    AppRoutes.property,
+    '/properties/p1',
+    pathParameters: _property,
+    screen: PropertyScreen,
+  ),
   _RouteCase(
     AppRoutes.propertyBookings,
     '/properties/p1/bookings',
     pathParameters: _property,
+    screen: PropertyBookingsScreen,
   ),
   _RouteCase(
     AppRoutes.propertySettings,
     '/properties/p1/settings',
     pathParameters: _property,
+    screen: PropertySettingsScreen,
   ),
   _RouteCase(
     AppRoutes.propertyReady,
     '/properties/p1/ready',
     pathParameters: _property,
+    screen: PropertyReadyScreen,
   ),
-  _RouteCase(AppRoutes.profile, '/profile', keepsNavigation: true),
-  _RouteCase(AppRoutes.editProfile, '/profile/edit'),
-  _RouteCase(AppRoutes.guests, '/profile/guests', keepsNavigation: true),
+  _RouteCase(
+    AppRoutes.profile,
+    '/profile',
+    keepsNavigation: true,
+    screen: ProfileScreen,
+  ),
+  _RouteCase(
+    AppRoutes.editProfile,
+    '/profile/edit',
+    screen: EditProfileScreen,
+  ),
+  _RouteCase(
+    AppRoutes.guests,
+    '/profile/guests',
+    keepsNavigation: true,
+    screen: GuestsScreen,
+  ),
   _RouteCase(
     AppRoutes.guest,
     '/profile/guests/g1',
     pathParameters: <String, String>{AppRoutes.guestIdParam: 'g1'},
+    screen: GuestScreen,
   ),
-  _RouteCase(AppRoutes.team, '/profile/team'),
-  _RouteCase(AppRoutes.notificationSettings, '/profile/notifications'),
-  _RouteCase(AppRoutes.security, '/profile/security'),
-  _RouteCase(AppRoutes.billing, '/profile/billing'),
-  _RouteCase(AppRoutes.help, '/profile/help'),
-  _RouteCase(AppRoutes.addProperty, '/add-property'),
-  _RouteCase(AppRoutes.addPropertyChannels, '/add-property/channels'),
-  _RouteCase(AppRoutes.addPropertyTerms, '/add-property/terms'),
-  _RouteCase(AppRoutes.newBooking, '/bookings/new'),
-  _RouteCase(AppRoutes.newBookingGuest, '/bookings/new/guest'),
+  _RouteCase(
+    AppRoutes.team,
+    '/profile/team',
+    screen: TeamScreen,
+  ),
+  _RouteCase(
+    AppRoutes.notificationSettings,
+    '/profile/notifications',
+    screen: NotificationSettingsScreen,
+  ),
+  _RouteCase(
+    AppRoutes.security,
+    '/profile/security',
+    screen: SecurityScreen,
+  ),
+  _RouteCase(
+    AppRoutes.billing,
+    '/profile/billing',
+    screen: BillingScreen,
+  ),
+  _RouteCase(
+    AppRoutes.help,
+    '/profile/help',
+    screen: HelpScreen,
+  ),
+  _RouteCase(
+    AppRoutes.addProperty,
+    '/add-property',
+    screen: AddPropertyScreen,
+  ),
+  _RouteCase(
+    AppRoutes.addPropertyChannels,
+    '/add-property/channels',
+    screen: AddPropertyChannelsScreen,
+  ),
+  _RouteCase(
+    AppRoutes.addPropertyTerms,
+    '/add-property/terms',
+    screen: AddPropertyTermsScreen,
+  ),
+  _RouteCase(
+    AppRoutes.newBooking,
+    '/bookings/new',
+    screen: NewBookingScreen,
+  ),
+  _RouteCase(
+    AppRoutes.newBookingGuest,
+    '/bookings/new/guest',
+    // Without a saved first step, step 2 returns to step 1.
+    landsOn: '/bookings/new',
+    screen: NewBookingScreen,
+  ),
   _RouteCase(
     AppRoutes.booking,
     '/bookings/b1',
     pathParameters: <String, String>{AppRoutes.bookingIdParam: 'b1'},
+    screen: BookingScreen,
   ),
   _RouteCase(
     AppRoutes.contract,
     '/contracts/k1',
     pathParameters: <String, String>{AppRoutes.contractIdParam: 'k1'},
+    screen: ContractScreen,
   ),
   _RouteCase(
     AppRoutes.contractSend,
     '/contracts/k1/send',
     pathParameters: <String, String>{AppRoutes.contractIdParam: 'k1'},
+    screen: ContractSendScreen,
   ),
   _RouteCase(
     AppRoutes.contractStatus,
     '/contracts/k1/status',
     pathParameters: <String, String>{AppRoutes.contractIdParam: 'k1'},
+    screen: ContractStatusScreen,
   ),
-  _RouteCase(AppRoutes.notifications, '/notifications'),
+  _RouteCase(
+    AppRoutes.notifications,
+    '/notifications',
+    screen: NotificationsScreen,
+  ),
   _RouteCase(
     AppRoutes.calendarConflict,
     '/calendar-conflicts/x1',
     pathParameters: <String, String>{AppRoutes.conflictIdParam: 'x1'},
+    screen: CalendarConflictScreen,
   ),
 ];
 
@@ -772,7 +908,7 @@ void main() {
 
         expect(
           Uri.parse(harness.location).path,
-          routeCase.location,
+          routeCase.landsOn ?? routeCase.location,
           reason: routeCase.route.name,
         );
         expect(

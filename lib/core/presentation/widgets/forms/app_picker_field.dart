@@ -64,7 +64,16 @@ final class AppPickerField<T extends Object> extends FormField<T> {
     super.key,
   }) : super(
          builder: (FormFieldState<T> field) {
-           return (field as _AppPickerFieldState<T>)._buildField();
+           final _AppPickerFieldState<T> state =
+               field as _AppPickerFieldState<T>;
+           return _PickerBox(
+             label: state._field.label,
+             hint: state._field.hint,
+             valueLabel: state._valueLabel,
+             errorText: state._shownErrorText,
+             isEnabled: state._field.enabled,
+             onTap: state._field.enabled ? state._open : null,
+           );
          },
        );
 
@@ -96,9 +105,18 @@ final class AppPickerField<T extends Object> extends FormField<T> {
 }
 
 final class _AppPickerFieldState<T extends Object> extends FormFieldState<T> {
-  static const double _minHeight = 72;
-
   AppPickerField<T> get _field => widget as AppPickerField<T>;
+
+  /// The picked option as shown in the field, or `null` before a pick.
+  String? get _valueLabel {
+    final T? value = this.value;
+    return value == null
+        ? null
+        : (_field.valueLabelOf ?? _field.titleOf)(value);
+  }
+
+  /// The validator's message, otherwise the external error.
+  String? get _shownErrorText => errorText ?? _field.errorText;
 
   Future<void> _open() async {
     context.hideKeyboard();
@@ -129,23 +147,40 @@ final class _AppPickerFieldState<T extends Object> extends FormFieldState<T> {
     didChange(picked);
     _field.onChanged?.call(picked);
   }
+}
 
-  Widget _buildField() {
-    final T? value = this.value;
-    final String? valueLabel = value == null
-        ? null
-        : (_field.valueLabelOf ?? _field.titleOf)(value);
-    final String? errorText = this.errorText ?? _field.errorText;
+/// The field box: the label, the picked value or the hint, and the error.
+final class _PickerBox extends StatelessWidget {
+  const _PickerBox({
+    required this.label,
+    required this.hint,
+    required this.valueLabel,
+    required this.errorText,
+    required this.isEnabled,
+    required this.onTap,
+  });
+
+  static const double _minHeight = 72;
+
+  final String label;
+  final String hint;
+  final String? valueLabel;
+  final String? errorText;
+  final bool isEnabled;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final String? valueLabel = this.valueLabel;
+    final String? errorText = this.errorText;
     final bool hasError = errorText != null;
-    final bool isEnabled = _field.enabled;
-    final VoidCallback? onTap = isEnabled ? _open : null;
 
     return Semantics(
       button: true,
       enabled: isEnabled,
       label: <String>[
-        _field.label,
-        valueLabel ?? _field.hint,
+        label,
+        valueLabel ?? hint,
         ?errorText,
       ].join(', '),
       onTap: onTap,
@@ -180,7 +215,7 @@ final class _AppPickerFieldState<T extends Object> extends FormFieldState<T> {
                   spacing: 2,
                   children: <Widget>[
                     Text(
-                      _field.label,
+                      label,
                       style: AppTypography.caption.copyWith(
                         color: hasError
                             ? AppColors.error
@@ -188,7 +223,7 @@ final class _AppPickerFieldState<T extends Object> extends FormFieldState<T> {
                       ),
                     ),
                     Text(
-                      valueLabel ?? _field.hint,
+                      valueLabel ?? hint,
                       style: AppTypography.bodyLarge.copyWith(
                         color: valueLabel == null
                             ? AppColors.secondaryText
@@ -238,7 +273,9 @@ final class _AppPickerSheetState<T extends Object>
     extends State<_AppPickerSheet<T>> {
   late final TextEditingController _searchController;
   late final ScrollController _scrollController;
-  late String _query;
+
+  /// The normalized query; only the options list listens to it.
+  late final ValueNotifier<String> _query;
 
   @override
   void initState() {
@@ -246,7 +283,7 @@ final class _AppPickerSheetState<T extends Object>
     _searchController = TextEditingController()
       ..addListener(_handleQueryChanged);
     _scrollController = ScrollController();
-    _query = '';
+    _query = ValueNotifier<String>('');
     WidgetsBinding.instance.addPostFrameCallback((_) => _revealSelected());
   }
 
@@ -256,15 +293,16 @@ final class _AppPickerSheetState<T extends Object>
       ..removeListener(_handleQueryChanged)
       ..dispose();
     _scrollController.dispose();
+    _query.dispose();
     super.dispose();
   }
 
   void _handleQueryChanged() {
     final String query = _normalize(_searchController.text);
-    if (query == _query) {
+    if (query == _query.value) {
       return;
     }
-    setState(() => _query = query);
+    _query.value = query;
     if (_scrollController.hasClients) {
       _scrollController.jumpTo(0);
     }
@@ -300,14 +338,12 @@ final class _AppPickerSheetState<T extends Object>
     return value.trim().toLowerCase().replaceAll('ё', 'е');
   }
 
-  List<T> get _visibleOptions {
-    if (_query.isEmpty) {
+  List<T> _optionsMatching(String query) {
+    if (query.isEmpty) {
       return widget.options;
     }
     return widget.options
-        .where(
-          (T option) => _normalize(widget.titleOf(option)).contains(_query),
-        )
+        .where((T option) => _normalize(widget.titleOf(option)).contains(query))
         .toList();
   }
 
@@ -317,7 +353,6 @@ final class _AppPickerSheetState<T extends Object>
       MediaQuery.viewInsetsOf(context).bottom,
       MediaQuery.paddingOf(context).bottom,
     );
-    final List<T> options = _visibleOptions;
     final AppPickerSheetTexts texts = widget.texts;
 
     return SizedBox.expand(
@@ -348,47 +383,84 @@ final class _AppPickerSheetState<T extends Object>
               ),
             ),
             Expanded(
-              child: options.isEmpty
-                  ? ListView(
-                      keyboardDismissBehavior:
-                          ScrollViewKeyboardDismissBehavior.onDrag,
-                      padding: const EdgeInsets.fromLTRB(
-                        AppSizes.pageGutter,
-                        AppSpacing.large,
-                        AppSizes.pageGutter,
-                        AppSpacing.large,
-                      ),
-                      children: <Widget>[
-                        AppEmptyState(
-                          title: texts.emptyTitle,
-                          message: texts.emptyMessage,
-                          actionLabel: texts.clearSearchLabel,
-                          onAction: _searchController.clear,
-                        ),
-                      ],
-                    )
-                  : ListView.builder(
-                      controller: _scrollController,
-                      keyboardDismissBehavior:
-                          ScrollViewKeyboardDismissBehavior.onDrag,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSizes.pageGutter,
-                      ),
-                      itemCount: options.length,
-                      itemBuilder: (BuildContext context, int index) {
-                        final T option = options[index];
-                        return _OptionRow(
-                          title: widget.titleOf(option),
-                          subtitle: widget.subtitleOf?.call(option),
-                          isSelected: option == widget.selected,
-                          onTap: () => Navigator.of(context).pop(option),
-                        );
-                      },
-                    ),
+              child: ValueListenableBuilder<String>(
+                valueListenable: _query,
+                builder: (BuildContext context, String query, _) {
+                  return _SheetOptions<T>(
+                    options: _optionsMatching(query),
+                    selected: widget.selected,
+                    titleOf: widget.titleOf,
+                    subtitleOf: widget.subtitleOf,
+                    texts: texts,
+                    scrollController: _scrollController,
+                    onClearSearch: _searchController.clear,
+                  );
+                },
+              ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// The options matching the query, or the empty state with «Очистить
+/// поиск».
+final class _SheetOptions<T extends Object> extends StatelessWidget {
+  const _SheetOptions({
+    required this.options,
+    required this.selected,
+    required this.titleOf,
+    required this.subtitleOf,
+    required this.texts,
+    required this.scrollController,
+    required this.onClearSearch,
+  });
+
+  final List<T> options;
+  final T? selected;
+  final String Function(T option) titleOf;
+  final String Function(T option)? subtitleOf;
+  final AppPickerSheetTexts texts;
+  final ScrollController scrollController;
+  final VoidCallback onClearSearch;
+
+  @override
+  Widget build(BuildContext context) {
+    if (options.isEmpty) {
+      return ListView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        padding: const EdgeInsets.fromLTRB(
+          AppSizes.pageGutter,
+          AppSpacing.large,
+          AppSizes.pageGutter,
+          AppSpacing.large,
+        ),
+        children: <Widget>[
+          AppEmptyState(
+            title: texts.emptyTitle,
+            message: texts.emptyMessage,
+            actionLabel: texts.clearSearchLabel,
+            onAction: onClearSearch,
+          ),
+        ],
+      );
+    }
+    return ListView.builder(
+      controller: scrollController,
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      padding: const EdgeInsets.symmetric(horizontal: AppSizes.pageGutter),
+      itemCount: options.length,
+      itemBuilder: (BuildContext context, int index) {
+        final T option = options[index];
+        return _OptionRow(
+          title: titleOf(option),
+          subtitle: subtitleOf?.call(option),
+          isSelected: option == selected,
+          onTap: () => Navigator.of(context).pop(option),
+        );
+      },
     );
   }
 }

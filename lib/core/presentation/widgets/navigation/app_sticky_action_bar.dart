@@ -81,14 +81,19 @@ final class AppStickyActionBar extends StatelessWidget {
             child: LayoutBuilder(
               builder: (BuildContext context, BoxConstraints constraints) {
                 final bool shouldStack = constraints.maxWidth < 320;
-                final Widget? content = _buildContent();
+                final String? title = this.title;
                 final Widget actions = AppPrimaryButton.compact(
                   label: primaryLabel,
                   onPressed: onPrimaryPressed,
                 );
-                if (content == null) {
+                if (title == null) {
                   return actions;
                 }
+                final Widget content = _RateContent(
+                  title: title,
+                  subtitle: subtitle,
+                  leading: leading,
+                );
                 if (shouldStack) {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -113,12 +118,22 @@ final class AppStickyActionBar extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget? _buildContent() {
-    final String? title = this.title;
-    if (title == null) {
-      return null;
-    }
+/// The rate, its caption and the optional leading widget.
+final class _RateContent extends StatelessWidget {
+  const _RateContent({
+    required this.title,
+    required this.subtitle,
+    required this.leading,
+  });
+
+  final String title;
+  final String? subtitle;
+  final Widget? leading;
+
+  @override
+  Widget build(BuildContext context) {
     final Widget? leading = this.leading;
     final String? subtitle = this.subtitle;
     final Widget text = Column(

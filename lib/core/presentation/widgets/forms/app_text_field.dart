@@ -10,7 +10,8 @@ import 'package:easy_booking/app/theme/app_typography.dart';
 /// The box is the [TextFormField]'s own decoration, so a tap anywhere on it
 /// focuses the input, and [validator] runs as part of the enclosing `Form`.
 /// Its message is shown below the box and takes precedence over [errorText].
-class AppTextField extends StatelessWidget {
+/// A tap outside the field unfocuses it.
+class AppTextField extends StatefulWidget {
   const AppTextField({
     this.controller,
     this.initialValue,
@@ -59,13 +60,6 @@ class AppTextField extends StatelessWidget {
   // input, so the paddings below are 4 px narrower than the design.
   static const double _inputGap = 4;
 
-  static const TextStyle _errorStyle = TextStyle(
-    fontFamily: AppTypography.fontFamily,
-    fontSize: 12,
-    height: 18 / 12,
-    color: AppColors.error,
-  );
-
   final TextEditingController? controller;
   final String? initialValue;
   final FocusNode? focusNode;
@@ -92,66 +86,94 @@ class AppTextField extends StatelessWidget {
   /// text. Its message is shown like [errorText] and takes precedence.
   final FormFieldValidator<String>? validator;
 
-  static Widget _buildError(BuildContext context, String errorText) {
-    // With the decorator's 4 px gap, 6 px between the box and the message.
-    return Padding(
-      padding: const EdgeInsets.only(top: 2),
-      child: Text(errorText, style: _errorStyle),
-    );
+  @override
+  State<AppTextField> createState() => _AppTextFieldState();
+}
+
+class _AppTextFieldState extends State<AppTextField> {
+  /// Used when the owner passes no [AppTextField.focusNode], so an outside
+  /// tap can still unfocus this field.
+  late FocusNode? _fallbackFocusNode;
+
+  FocusNode get _focusNode => widget.focusNode ?? _fallbackFocusNode!;
+
+  @override
+  void initState() {
+    super.initState();
+    _fallbackFocusNode = widget.focusNode == null ? FocusNode() : null;
+  }
+
+  @override
+  void didUpdateWidget(covariant AppTextField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.focusNode == null) {
+      _fallbackFocusNode ??= FocusNode();
+    } else {
+      _fallbackFocusNode?.dispose();
+      _fallbackFocusNode = null;
+    }
+  }
+
+  @override
+  void dispose() {
+    _fallbackFocusNode?.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final Widget? leading = this.leading;
-    final Widget? trailing = this.trailing;
-    final String? errorText = this.errorText;
+    final Widget? leading = widget.leading;
+    final Widget? trailing = widget.trailing;
+    final String? errorText = widget.errorText;
 
     return Opacity(
-      opacity: enabled ? 1 : 0.4,
+      opacity: widget.enabled ? 1 : 0.4,
       child: TextFormField(
-        controller: controller,
-        initialValue: initialValue,
-        focusNode: focusNode,
-        validator: validator,
-        errorBuilder: _buildError,
-        onChanged: onChanged,
-        onFieldSubmitted: onSubmitted,
-        onTap: onTap,
-        keyboardType: keyboardType,
-        textInputAction: textInputAction,
-        obscureText: obscureText,
-        enabled: enabled,
-        readOnly: readOnly,
-        autocorrect: autocorrect,
-        maxLines: maxLines,
-        minLines: minLines,
-        autofillHints: autofillHints,
-        inputFormatters: inputFormatters,
+        controller: widget.controller,
+        initialValue: widget.initialValue,
+        focusNode: _focusNode,
+        validator: widget.validator,
+        errorBuilder: (BuildContext context, String errorText) =>
+            _FieldError(errorText: errorText),
+        onChanged: widget.onChanged,
+        onFieldSubmitted: widget.onSubmitted,
+        onTap: widget.onTap,
+        keyboardType: widget.keyboardType,
+        textInputAction: widget.textInputAction,
+        obscureText: widget.obscureText,
+        enabled: widget.enabled,
+        readOnly: widget.readOnly,
+        autocorrect: widget.autocorrect,
+        maxLines: widget.maxLines,
+        minLines: widget.minLines,
+        autofillHints: widget.autofillHints,
+        inputFormatters: widget.inputFormatters,
         cursorColor: AppColors.accent,
-        onTapUpOutside: (event) => focusNode?.unfocus(),
+        // Only this field's node: another field tapped meanwhile keeps focus.
+        onTapUpOutside: (_) => _focusNode.unfocus(),
         style: AppTypography.bodyLarge.copyWith(color: AppColors.text),
         decoration: InputDecoration(
-          labelText: label,
+          labelText: widget.label,
           floatingLabelBehavior: FloatingLabelBehavior.always,
-          labelStyle: _labelSlotStyle,
+          labelStyle: AppTextField._labelSlotStyle,
           floatingLabelStyle: WidgetStateTextStyle.resolveWith(
-            (Set<WidgetState> states) => _labelStyle.copyWith(
+            (Set<WidgetState> states) => AppTextField._labelStyle.copyWith(
               color: states.contains(WidgetState.error)
                   ? AppColors.error
                   : AppColors.secondaryText,
             ),
           ),
-          hintText: hint,
+          hintText: widget.hint,
           hintStyle: AppTypography.bodyLarge.copyWith(
             color: AppColors.secondaryText,
           ),
-          error: errorText == null ? null : _buildError(context, errorText),
+          error: errorText == null ? null : _FieldError(errorText: errorText),
           prefixIcon: leading == null
               ? null
               : Padding(
                   padding: const EdgeInsetsDirectional.only(
                     start: 16,
-                    end: 12 - _inputGap,
+                    end: 12 - AppTextField._inputGap,
                   ),
                   child: leading,
                 ),
@@ -161,7 +183,7 @@ class AppTextField extends StatelessWidget {
               ? null
               : Padding(
                   padding: const EdgeInsetsDirectional.only(
-                    start: 8 - _inputGap,
+                    start: 8 - AppTextField._inputGap,
                     end: 16,
                   ),
                   child: trailing,
@@ -170,7 +192,7 @@ class AppTextField extends StatelessWidget {
           suffixIconColor: AppColors.text,
           constraints: const BoxConstraints(minHeight: 72),
           contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16 - _inputGap,
+            horizontal: 16 - AppTextField._inputGap,
             vertical: 12,
           ),
           filled: true,
@@ -196,6 +218,29 @@ class AppTextField extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The validator or external error under the box.
+final class _FieldError extends StatelessWidget {
+  const _FieldError({required this.errorText});
+
+  static const TextStyle _style = TextStyle(
+    fontFamily: AppTypography.fontFamily,
+    fontSize: 12,
+    height: 18 / 12,
+    color: AppColors.error,
+  );
+
+  final String errorText;
+
+  @override
+  Widget build(BuildContext context) {
+    // With the decorator's 4 px gap, 6 px between the box and the message.
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: Text(errorText, style: _style),
     );
   }
 }

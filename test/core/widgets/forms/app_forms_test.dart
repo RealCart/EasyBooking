@@ -114,6 +114,85 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  group('a tap outside a field', () {
+    bool hasFocus(WidgetTester tester, Finder field) => tester
+        .widget<EditableText>(
+          find.descendant(of: field, matching: find.byType(EditableText)),
+        )
+        .focusNode
+        .hasFocus;
+
+    Future<void> pumpFields(WidgetTester tester) {
+      return pumpWidget(
+        tester,
+        const SizedBox(
+          width: 300,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              AppTextField(label: 'Name'),
+              SizedBox(height: 16),
+              AppSearchField(hint: 'Найти город'),
+              SizedBox(key: Key('outside'), height: 200),
+            ],
+          ),
+        ),
+      );
+    }
+
+    testWidgets('unfocuses a text field without a focus node', (
+      WidgetTester tester,
+    ) async {
+      await pumpFields(tester);
+      final Finder field = find.byType(AppTextField);
+
+      await tester.tap(field);
+      await tester.pump();
+      expect(hasFocus(tester, field), isTrue);
+
+      await tester.tapAt(
+        tester.getCenter(find.byKey(const Key('outside'))),
+      );
+      await tester.pump();
+      expect(hasFocus(tester, field), isFalse);
+    });
+
+    testWidgets('unfocuses the search field', (WidgetTester tester) async {
+      await pumpFields(tester);
+      final Finder field = find.byType(AppSearchField);
+
+      await tester.tap(field);
+      await tester.pump();
+      expect(hasFocus(tester, field), isTrue);
+
+      await tester.tapAt(
+        tester.getCenter(find.byKey(const Key('outside'))),
+      );
+      await tester.pump();
+      expect(hasFocus(tester, field), isFalse);
+    });
+
+    testWidgets('keeps the focus on the field that was tapped', (
+      WidgetTester tester,
+    ) async {
+      await pumpFields(tester);
+      final Finder text = find.byType(AppTextField);
+      final Finder search = find.byType(AppSearchField);
+
+      await tester.tap(text);
+      await tester.pump();
+      await tester.tap(search);
+      await tester.pump();
+      expect(hasFocus(tester, search), isTrue);
+      expect(hasFocus(tester, text), isFalse);
+
+      await tester.tap(text);
+      await tester.pump();
+      expect(hasFocus(tester, text), isTrue);
+      expect(hasFocus(tester, search), isFalse);
+    });
+  });
+
   testWidgets('AppSearchField clears its controller and reports the change', (
     WidgetTester tester,
   ) async {
@@ -610,6 +689,44 @@ void main() {
       await tester.tap(find.bySemanticsLabel('Clear search'));
       await tester.pump();
       expect(find.text('Например, Шымкент'), findsOneWidget);
+    });
+
+    testWidgets('a tap on the icon or the padding focuses the input', (
+      WidgetTester tester,
+    ) async {
+      await pumpSearch(tester);
+      final Rect pill = tester.getRect(find.byType(AppSearchField));
+      bool hasFocus() => tester
+          .widget<EditableText>(find.byType(EditableText))
+          .focusNode
+          .hasFocus;
+
+      for (final Offset point in <Offset>[
+        pill.centerLeft + const Offset(28, 0),
+        pill.topCenter + const Offset(0, 4),
+        pill.centerRight - const Offset(8, 0),
+      ]) {
+        FocusManager.instance.primaryFocus?.unfocus();
+        await tester.pump();
+        expect(hasFocus(), isFalse);
+
+        await tester.tapAt(point);
+        await tester.pump();
+        expect(hasFocus(), isTrue, reason: 'tap at $point');
+      }
+    });
+
+    testWidgets('draws a thicker border while focused', (
+      WidgetTester tester,
+    ) async {
+      await pumpSearch(tester);
+      final Finder pill = find.byType(InputDecorator);
+      expect(pill, paints..rrect(color: AppColors.border, strokeWidth: 1));
+
+      await tester.tap(find.byType(AppSearchField));
+      await tester.pumpAndSettle();
+
+      expect(pill, paints..rrect(color: AppColors.text, strokeWidth: 2));
     });
 
     testWidgets('keeps a 66 px height when the clear button appears', (

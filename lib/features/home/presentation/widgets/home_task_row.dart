@@ -8,7 +8,7 @@ import 'package:easy_booking/app/theme/app_typography.dart';
 import 'package:easy_booking/core/presentation/widgets/actions/app_text_button.dart';
 import 'package:easy_booking/core/presentation/widgets/content/app_task_row.dart';
 import 'package:easy_booking/core/utils/date_formatter.dart';
-import 'package:easy_booking/features/home/presentation/mock/home_mock_data.dart';
+import 'package:easy_booking/features/home/domain/entity/home_task_entity.dart';
 
 /// A task before arrival: a contract offers a reminder, a preparation shows
 /// its deadline.
@@ -20,7 +20,7 @@ final class HomeTaskRow extends StatelessWidget {
     super.key,
   });
 
-  final HomeTaskMock task;
+  final HomeTaskEntity task;
   final VoidCallback onTap;
   final VoidCallback onRemind;
 

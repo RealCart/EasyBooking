@@ -8,14 +8,6 @@ abstract interface class GoRouterWrapper {
 }
 
 extension GoRouteExtension on GoRoute {
-  static Widget _buildChild(BuildContext context, Widget child) {
-    if (child is GoRouterWrapper) {
-      return (child as GoRouterWrapper).wrappedRoute(context);
-    }
-
-    return child;
-  }
-
   static GoRoute wrappedRoute({
     required String path,
     required Widget Function(BuildContext context, GoRouterState state)
@@ -42,24 +34,29 @@ extension GoRouteExtension on GoRoute {
       onExit: onExit,
       caseSensitive: caseSensitive,
       routes: routes,
-      builder: pageBuilder == null
-          ? (context, state) {
-              final Widget child = wrappedBuilder.call(context, state);
+      pageBuilder: (context, state) {
+        final Widget screen = wrappedBuilder.call(context, state);
+        final Widget child = screen is GoRouterWrapper
+            ? (screen as GoRouterWrapper).wrappedRoute(context)
+            : screen;
 
-              return _buildChild(context, child);
-            }
-          : null,
-      pageBuilder: pageBuilder == null
-          ? null
-          : (context, state) {
-              final Widget child = wrappedBuilder.call(context, state);
+        return pageBuilder?.call(context, state, child) ??
+            _materialPage(state, child);
+      },
+    );
+  }
 
-              return pageBuilder.call(
-                context,
-                state,
-                _buildChild(context, child),
-              );
-            },
+  // go_router 18 detects the app type through `package:material_ui`, so it
+  // does not recognise the framework's `MaterialApp` and falls back to
+  // `NoTransitionPage` for `builder:` routes. Building the `MaterialPage`
+  // here keeps the platform transitions and the iOS back swipe.
+  static Page<void> _materialPage(GoRouterState state, Widget child) {
+    return MaterialPage<void>(
+      key: state.pageKey,
+      name: state.name,
+      arguments: state.extra,
+      restorationId: state.pageKey.value,
+      child: child,
     );
   }
 }
